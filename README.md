@@ -10,7 +10,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.14-indigo.svg)](https://www.prisma.io/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8.svg)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Vitest-79%20passed-success.svg)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Vitest-108%20passed-success.svg)](https://vitest.dev/)
 
 ---
 
@@ -68,6 +68,13 @@ $$\text{USER} \longrightarrow \text{VENDOR\_PROFILE} \longrightarrow \text{STORE
 - [x] High-contention concurrency verified against race conditions and lost updates.
 - [x] Vendor product management UI (`/vendor/stores/:storeId/products`) with search, category filtering, stock adjustments, and lifecycle toggles.
 
+### Phase 5: PostGIS Spatial Store Discovery & Customer Marketplace Browsing
+- [x] Native PostGIS spatial representation: `STORED` generated geography point column (`geography(Point, 4326)`) and pure **GiST spatial index** (`stores_location_gist_idx`).
+- [x] Geographic distance & delivery radius filtering with `ST_DWithin` and `ST_Distance` (no in-memory Haversine loops).
+- [x] Discovery eligibility rule strictly enforcing: `APPROVED`, `is_active`, `is_accepting_orders`, open during operating hours in store timezone, and customer inside delivery radius.
+- [x] Timezone-safe SQL evaluation (`safe_timestamptz_at_tz`) preventing database crashes on unrecognised timezone strings.
+- [x] Customer marketplace UI (`/stores`) with saved address dropdown, temporary map pin placement, category pills, live search, and store product catalog browsing (`/stores/:id`).
+
 ---
 
 ## 🛠 Tech Stack
@@ -77,7 +84,7 @@ $$\text{USER} \longrightarrow \text{VENDOR\_PROFILE} \longrightarrow \text{STORE
 | **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Radix UI, TanStack Query, Zustand, Leaflet / React-Leaflet, Lucide Icons |
 | **Backend** | Node.js, Express, TypeScript, Prisma ORM, Zod, BCrypt, jsonwebtoken, cookie-parser |
 | **Database** | PostgreSQL 16 + PostGIS 3.4 (running via Docker Compose) |
-| **Testing** | Vitest, Supertest (79 automated tests across all domain modules) |
+| **Testing** | Vitest, Supertest (108 automated tests across all domain modules) |
 
 ---
 
@@ -137,12 +144,13 @@ pnpm test
 ```
 
 ```
-Test Files  4 passed (4)
-     Tests  79 passed (79)
-  ✓ tests/product.test.ts  (26 tests)
-  ✓ tests/store.test.ts    (14 tests)
-  ✓ tests/address.test.ts  (16 tests)
-  ✓ tests/auth.test.ts     (23 tests)
+Test Files  5 passed (5)
+     Tests  108 passed (108)
+  ✓ tests/product.test.ts    (26 tests)
+  ✓ tests/discovery.test.ts  (29 tests)
+  ✓ tests/store.test.ts      (14 tests)
+  ✓ tests/address.test.ts    (16 tests)
+  ✓ tests/auth.test.ts       (23 tests)
 ```
 
 ```bash
@@ -158,7 +166,7 @@ pnpm build
 - [x] **Phase 2**: Customer Addresses & Location Abstractions
 - [x] **Phase 3**: Physical Store Onboarding & Governance
 - [x] **Phase 4**: Products & Inventory Management
-- [ ] **Phase 5**: PostGIS Spatial Store Discovery & Customer Marketplace Browsing
+- [x] **Phase 5**: PostGIS Spatial Store Discovery & Customer Marketplace Browsing
 - [ ] **Phase 6**: Shopping Cart & Single-Store Enforcement
 - [ ] **Phase 7**: Checkout, Payments & Order Fulfillment Lifecycle
 - [ ] **Phase 8**: Reviews, Ratings & Vendor Analytics
