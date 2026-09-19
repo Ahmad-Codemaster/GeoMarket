@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  VENDOR
+  ADMIN
+}
+
+enum StoreStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  vendorProfile VendorProfile?
+  addresses     CustomerAddress[]
+
+  @@map("users")
+}
+
+model VendorProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  businessLegalName String   @map("business_legal_name")
+  taxIdNumber       String?  @map("tax_id_number")
+  bankAccountInfo   String?  @map("bank_account_info")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id])
+  stores Store[]
+
+  @@map("vendor_profiles")
+}
+
+model StoreCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  iconUrl     String?  @map("icon_url")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  stores Store[]
+
+  @@map("store_categories")
+}
+
+model ProductCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+model CustomerAddress {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  addressLabel   String   @map("address_label") @db.VarChar(50)
+  recipientName  String?  @map("recipient_name") @db.VarChar(100)
+  recipientPhone String?  @map("recipient_phone") @db.VarChar(20)
+  addressLine    String   @map("address_line") @db.VarChar(500)
+  city           String   @db.VarChar(100)
+  latitude       Decimal  @db.Decimal(10, 8)
+  longitude      Decimal  @db.Decimal(11, 8)
+  isDefault      Boolean  @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("customer_addresses")
+}
+
+model Store {
+  id                String      @id @default(uuid())
+  vendorProfileId   String      @map("vendor_profile_id")
+  storeCategoryId   String      @map("store_category_id")
+  name              String      @db.VarChar(255)
+  slug              String      @unique @db.VarChar(255)
+  description       String?     @db.Text
+  addressLine       String      @map("address_line") @db.VarChar(500)
+  city              String      @db.VarChar(100)
+  latitude          Decimal     @db.Decimal(10, 8)
+  longitude         Decimal     @db.Decimal(11, 8)
+  deliveryRadiusKm  Decimal     @map("delivery_radius_km") @db.Decimal(5, 2)
+  baseDeliveryFee   Decimal     @default(0.00) @map("base_delivery_fee") @db.Decimal(10, 2)
+  minOrderAmount    Decimal     @default(0.00) @map("min_order_amount") @db.Decimal(10, 2)
+  timezone          String      @default("Asia/Karachi") @db.VarChar(50)
+  status            StoreStatus @default(PENDING_APPROVAL)
+  isActive          Boolean     @default(false) @map("is_active")
+  isAcceptingOrders Boolean     @default(true) @map("is_accepting_orders")
+  rejectionReason   String?     @map("rejection_reason") @db.Text
+  suspensionReason  String?     @map("suspension_reason") @db.Text
+  averageRating     Decimal     @default(0.00) @map("average_rating") @db.Decimal(3, 2)
+  totalReviews      Int         @default(0) @map("total_reviews")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  vendorProfile  VendorProfile         @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  storeCategory  StoreCategory         @relation(fields: [storeCategoryId], references: [id], onDelete: Restrict)
+  operatingHours StoreOperatingHours[]
+
+  products       Product[]
+  // In Phase 6: carts Cart[]
+  // In Phase 7: orders Order[]
+
+  @@index([vendorProfileId])
+  @@index([storeCategoryId])
+  @@index([status, isActive])
+  @@map("stores")
+}
+
+model StoreOperatingHours {
+  id          String   @id @default(uuid())
+  storeId     String   @map("store_id")
+  dayOfWeek   Int      @map("day_of_week") @db.SmallInt // 0 = Sunday, 6 = Saturday
+  openingTime String   @map("opening_time") @db.VarChar(5) // "HH:MM" 24h
+  closingTime String   @map("closing_time") @db.VarChar(5) // "HH:MM" 24h
+  isClosed    Boolean  @default(false) @map("is_closed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, dayOfWeek])
+  @@index([storeId])
+  @@map("store_operating_hours")
+}
+
+model Product {
+  id                String          @id @default(uuid())
+  storeId           String          @map("store_id")
+  productCategoryId String          @map("product_category_id")
+  name              String          @db.VarChar(255)
+  slug              String          @db.VarChar(255)
+  description       String?         @db.Text
+  price             Decimal         @db.Decimal(10, 2)
+  stockQuantity     Int             @default(0) @map("stock_quantity")
+  sku               String?         @db.VarChar(100)
+  imageUrl          String?         @map("image_url") @db.VarChar(1000)
+  unit              String?         @db.VarChar(50)
+  isActive          Boolean         @default(true) @map("is_active")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category          ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Restrict)
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+  @@index([productCategoryId])
+  @@index([isActive])
+  @@map("products")
+}

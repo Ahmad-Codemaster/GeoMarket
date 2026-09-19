@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: geomarket_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-geomarket}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geomarket_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-geomarket_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - geomarket_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geomarket} -d ${POSTGRES_DB:-geomarket_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  geomarket_pgdata:

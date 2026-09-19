@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Neutrals */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    /* Card / Popover surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary — Indigo (trust, navigation) */
+    --primary: 239 84% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — light slate */
+    --secondary: 215 28% 95%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted */
+    --muted: 215 28% 95%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent — Amber (CTAs, marketplace energy) */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders / Inputs */
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 239 84% 60%;
+
+    /* Border radius */
+    --radius: 0.5rem;
+
+    /* Role tokens */
+    --vendor: 271 81% 56%;
+    --vendor-foreground: 0 0% 100%;
+    --admin: 347 77% 50%;
+    --admin-foreground: 0 0% 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Consistent focus ring */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
