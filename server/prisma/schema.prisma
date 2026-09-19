@@ -120,6 +120,7 @@ model Store {
   suspensionReason  String?     @map("suspension_reason") @db.Text
   averageRating     Decimal     @default(0.00) @map("average_rating") @db.Decimal(3, 2)
   totalReviews      Int         @default(0) @map("total_reviews")
+  location          Unsupported("geography(Point, 4326)")?
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 

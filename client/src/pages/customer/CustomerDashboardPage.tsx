@@ -134,32 +134,43 @@ export function CustomerDashboardPage() {
           </Card>
         </div>
 
-        {/* Empty Marketplace Discovery State */}
+        {/* Marketplace Discovery Preview State */}
         <Card className="border-border/60">
           <CardHeader>
-            <CardTitle className="text-lg">Stores Near You</CardTitle>
-            <CardDescription>
-              Stores delivering within your geographic perimeter
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Stores Near You</CardTitle>
+                <CardDescription>
+                  Stores delivering within your geographic perimeter
+                </CardDescription>
+              </div>
+              <Button asChild size="sm">
+                <Link to="/stores">Browse All Stores</Link>
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="py-10">
+          <CardContent className="py-8">
             <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-3">
               <div className="rounded-full bg-secondary p-4">
-                <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                <ShoppingBag className="h-8 w-8 text-primary" />
               </div>
               <h3 className="font-semibold text-base">
                 {defaultAddress
-                  ? `Ready for Store Discovery (${defaultAddress.city})`
-                  : 'No active location set'}
+                  ? `Location Locked: ${defaultAddress.city}`
+                  : 'Set your delivery location to discover local stores'}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {defaultAddress
-                  ? `Your delivery coordinates are locked to (${defaultAddress.latitude.toFixed(4)}, ${defaultAddress.longitude.toFixed(4)}). Nearby store spatial filtering (ST_DWithin) activates in Phase 5.`
-                  : 'GeoMarket filters all stores by real-world delivery boundaries. Without an active location, no stores are displayed.'}
+                  ? `Your delivery pin (${defaultAddress.latitude.toFixed(4)}, ${defaultAddress.longitude.toFixed(4)}) is ready. Explore open local stores within delivery reach.`
+                  : 'GeoMarket filters all merchants by PostGIS straight-line perimeter. Configure your address to see stores delivering to you.'}
               </p>
-              <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-3 py-1 mt-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Physical store onboarding arrives in Phase 3; Spatial discovery in Phase 5
+              <div className="pt-2">
+                <Button asChild variant="accent">
+                  <Link to="/stores">
+                    <Compass className="mr-2 h-4 w-4" />
+                    Open Marketplace Discovery
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardContent>

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User as UserIcon, LayoutDashboard, Store, ShieldCheck, Package } from 'lucide-react';
+import { LogOut, Settings, User as UserIcon, LayoutDashboard, Store, ShieldCheck, Package, MapPin } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,10 +98,20 @@ export function UserMenu({ user }: UserMenuProps) {
           )}
 
           {user.role === UserRole.CUSTOMER && (
-            <DropdownMenuItem onClick={() => navigate('/profile')}>
-              <UserIcon className="mr-2 h-4 w-4" />
-              My Profile
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onClick={() => navigate('/stores')}>
+                <Store className="mr-2 h-4 w-4" />
+                Discover Stores
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/addresses')}>
+                <MapPin className="mr-2 h-4 w-4" />
+                Delivery Locations
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <UserIcon className="mr-2 h-4 w-4" />
+                My Profile
+              </DropdownMenuItem>
+            </>
           )}
 
           {user.role === UserRole.VENDOR && (

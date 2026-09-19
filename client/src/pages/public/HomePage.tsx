@@ -62,24 +62,38 @@ export function HomePage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
               {user ? (
-                <Button size="lg" asChild className="w-full sm:w-auto">
-                  <Link to={roleDashboard[user.role]}>
-                    Access {user.role === UserRole.VENDOR ? 'Vendor Portal' : user.role === UserRole.ADMIN ? 'Admin Console' : 'Customer Hub'}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              ) : (
-                <>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button size="lg" asChild className="w-full sm:w-auto">
+                    <Link to="/stores">
+                      <Compass className="mr-2 h-4 w-4" />
+                      Browse Nearby Stores
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
+                    <Link to={roleDashboard[user.role]}>
+                      Access {user.role === UserRole.VENDOR ? 'Vendor Portal' : user.role === UserRole.ADMIN ? 'Admin Console' : 'Customer Hub'}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button size="lg" asChild className="w-full sm:w-auto">
+                    <Link to="/stores">
+                      <Compass className="mr-2 h-4 w-4" />
+                      Browse Nearby Stores
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="secondary" asChild className="w-full sm:w-auto">
                     <Link to="/register">
-                      Explore as Customer
+                      Create Account
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                   <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
-                    <Link to="/register/vendor">Register Your Store</Link>
+                    <Link to="/register/vendor">Register Store</Link>
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>

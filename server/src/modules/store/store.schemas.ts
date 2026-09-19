@@ -32,6 +32,15 @@ function normalizeStoreInput(arg: any) {
   return arg;
 }
 
+function isValidIanaTimezone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const createStoreSchema = z.preprocess(
   normalizeStoreInput,
   z.object({
@@ -50,7 +59,7 @@ export const createStoreSchema = z.preprocess(
       }),
     baseDeliveryFee: z.number().min(0).default(0),
     minOrderAmount: z.number().min(0).default(0),
-    timezone: z.string().trim().default('Asia/Karachi'),
+    timezone: z.string().trim().refine(isValidIanaTimezone, { message: 'Invalid IANA timezone' }).default('Asia/Karachi'),
     isAcceptingOrders: z.boolean().optional().default(true),
   }),
 );
@@ -74,7 +83,7 @@ export const updateStoreSchema = z.preprocess(
       .optional(),
     baseDeliveryFee: z.number().min(0).optional(),
     minOrderAmount: z.number().min(0).optional(),
-    timezone: z.string().trim().optional(),
+    timezone: z.string().trim().refine(isValidIanaTimezone, { message: 'Invalid IANA timezone' }).optional(),
     isAcceptingOrders: z.boolean().optional(),
   }),
 );

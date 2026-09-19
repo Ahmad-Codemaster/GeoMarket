@@ -9,15 +9,17 @@ import type {
 
 export const ADDRESSES_QUERY_KEY = ['addresses'] as const;
 
-export function useAddresses() {
+export function useAddresses(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ADDRESSES_QUERY_KEY,
     queryFn: async () => {
       const res = await addressApi.list();
       return res.addresses;
     },
+    enabled: options?.enabled,
   });
 }
+
 
 export function useCreateAddress() {
   const qc = useQueryClient();

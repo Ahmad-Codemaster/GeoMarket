@@ -22,7 +22,15 @@ interface LocationPickerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddressCreated?: () => void;
+  onSelectCoordinates?: (coords: {
+    latitude: number;
+    longitude: number;
+    label: string;
+    addressLine?: string;
+    city?: string;
+  }) => void;
 }
+
 
 // Default initial centroid: Faisalabad, Pakistan
 const DEFAULT_LAT = 31.4124;
@@ -53,6 +61,7 @@ export function LocationPickerModal({
   open,
   onOpenChange,
   onAddressCreated,
+  onSelectCoordinates,
 }: LocationPickerModalProps) {
   const tileProvider = useMemo(() => getActiveMapTileProvider(), []);
   const tileConfig = tileProvider.getTileConfig();
@@ -348,10 +357,31 @@ export function LocationPickerModal({
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
+          {onSelectCoordinates && (
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => {
+                onSelectCoordinates({
+                  latitude: position[0],
+                  longitude: position[1],
+                  label: addressLabel.trim() || 'Selected Pin',
+                  addressLine: addressLine.trim() || undefined,
+                  city: city.trim() || undefined,
+                });
+                onOpenChange(false);
+              }}
+              className="gap-1.5"
+            >
+              <Compass className="h-4 w-4" />
+              Use This Pin
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={handleSave}

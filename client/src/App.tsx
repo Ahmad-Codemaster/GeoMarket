@@ -17,8 +17,9 @@ import { NotFoundPage } from './pages/common/NotFoundPage';
 import { CustomerDashboardPage } from './pages/customer/CustomerDashboardPage';
 import { CustomerProfilePage } from './pages/customer/CustomerProfilePage';
 import { SavedAddressesPage } from './pages/customer/SavedAddressesPage';
+import { StoresDiscoveryPage } from './pages/customer/StoresDiscoveryPage';
+import { StoreDetailPage } from './pages/customer/StoreDetailPage';
 import {
-  StoresDiscoveryPlaceholder,
   ProductsCatalogPlaceholder,
   CartPlaceholder,
   CheckoutPlaceholder,
@@ -49,15 +50,17 @@ export function App() {
           <Route path="/register" element={<RegisterCustomerPage />} />
           <Route path="/register/vendor" element={<RegisterVendorPage />} />
 
-          {/* Authenticated application shell */}
+          {/* Application shell */}
           <Route element={<AppLayout />}>
+            {/* Public store discovery routes */}
+            <Route path="/stores" element={<StoresDiscoveryPage />} />
+            <Route path="/stores/:id" element={<StoreDetailPage />} />
+
             {/* Customer Routes — CUSTOMER role required */}
             <Route element={<ProtectedRoute roles={[UserRole.CUSTOMER]} />}>
               <Route path="/dashboard" element={<CustomerDashboardPage />} />
               <Route path="/profile" element={<CustomerProfilePage />} />
               <Route path="/addresses" element={<SavedAddressesPage />} />
-              <Route path="/stores" element={<StoresDiscoveryPlaceholder />} />
-              <Route path="/stores/:id" element={<StoresDiscoveryPlaceholder />} />
               <Route path="/products" element={<ProductsCatalogPlaceholder />} />
               <Route path="/cart" element={<CartPlaceholder />} />
               <Route path="/checkout" element={<CheckoutPlaceholder />} />

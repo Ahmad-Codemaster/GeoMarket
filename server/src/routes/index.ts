@@ -6,6 +6,7 @@ import categoryRouter from '../modules/category/category.router';
 import vendorStoreRouter from '../modules/store/vendorStore.router';
 import adminStoreRouter from '../modules/store/adminStore.router';
 import vendorProductRouter from '../modules/product/vendorProduct.router';
+import discoveryRouter from '../modules/discovery/discovery.router';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -36,6 +37,6 @@ router.use('/admin/categories', categoryRouter.admin);
 router.use('/vendor/stores', vendorStoreRouter);
 router.use('/vendor/products', vendorProductRouter);
 router.use('/admin/stores', adminStoreRouter);
-
+router.use('/discovery', discoveryRouter);
 
 export default router;

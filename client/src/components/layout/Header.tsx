@@ -34,7 +34,10 @@ export function Header() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/stores">Browse Stores</Link>
+          </Button>
           {user ? (
             <UserMenu user={user} />
           ) : (
@@ -117,6 +120,8 @@ function getMobileNavLinks(role: UserRole) {
   }
   return [
     { href: '/dashboard', label: 'Home' },
+    { href: '/stores', label: 'Discover Stores' },
+    { href: '/addresses', label: 'My Addresses' },
     { href: '/profile', label: 'My Profile' },
   ];
 }
