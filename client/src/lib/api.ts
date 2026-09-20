@@ -24,6 +24,10 @@ import type {
   DiscoveredStoreDto,
   DiscoveredStoresResponseDto,
   CustomerProductDto,
+  CartDto,
+  AddToCartDto,
+  UpdateCartItemDto,
+  CartConflictErrorDetails,
 } from '@geomarket/shared';
 
 const BASE = '/api/v1';
@@ -32,6 +36,8 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly code?: string,
+    public readonly details?: any,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -50,11 +56,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new ApiError(res.status, body.error ?? 'Request failed');
+    throw new ApiError(res.status, body.error ?? 'Request failed', body.code, body);
   }
 
   return res.json() as Promise<T>;
 }
+
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -388,5 +395,34 @@ export const discoveryApi = {
     }>(`/discovery/stores/${idOrSlug}/products${qs ? `?${qs}` : ''}`);
   },
 };
+
+// ─── Cart ─────────────────────────────────────────────────────────────────────
+
+export const cartApi = {
+  getCart: () => apiFetch<{ cart: CartDto | null }>('/cart'),
+
+  addToCart: (data: AddToCartDto) =>
+    apiFetch<{ cart: CartDto }>('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateCartItem: (itemId: string, data: UpdateCartItemDto) =>
+    apiFetch<{ cart: CartDto }>(`/cart/items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  removeCartItem: (itemId: string) =>
+    apiFetch<{ cart: CartDto }>(`/cart/items/${itemId}`, {
+      method: 'DELETE',
+    }),
+
+  clearCart: () =>
+    apiFetch<{ cart: CartDto }>('/cart', {
+      method: 'DELETE',
+    }),
+};
+
 
 

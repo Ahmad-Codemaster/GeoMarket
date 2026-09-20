@@ -10,7 +10,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.14-indigo.svg)](https://www.prisma.io/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8.svg)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Vitest-108%20passed-success.svg)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Vitest-140%20passed-success.svg)](https://vitest.dev/)
 
 ---
 
@@ -27,11 +27,13 @@ ecom/
 ```
 
 ### Domain Ownership Chain
-$$\text{USER} \longrightarrow \text{VENDOR\_PROFILE} \longrightarrow \text{STORE} \longrightarrow \text{PRODUCTS}$$
+$$\text{USER} \longrightarrow \begin{cases} \text{CUSTOMER\_ADDRESSES} \\ \text{VENDOR\_PROFILE} \longrightarrow \text{STORE} \longrightarrow \text{PRODUCTS} \\ \text{CART} \longrightarrow \text{CART\_ITEMS} \longrightarrow \text{PRODUCT} \quad (\text{Single-Store Invariant: } \text{Product.storeId} = \text{Cart.storeId}) \end{cases}$$
 
 * A `User` with role `VENDOR` owns exactly one `VendorProfile`.
 * A `VendorProfile` can own multiple physical `Store` locations.
 * Each `Product` belongs to exactly one physical `Store` and one `ProductCategory`.
+* A `User` with role `CUSTOMER` maintains strictly one active persistent `Cart`.
+* Every `CartItem` in a cart must strictly originate from the store assigned to that `Cart` (`Cart.storeId`).
 * Multi-tenant isolation is enforced server-side with strict 404 anti-enumeration protections.
 
 ---
@@ -74,6 +76,14 @@ $$\text{USER} \longrightarrow \text{VENDOR\_PROFILE} \longrightarrow \text{STORE
 - [x] Discovery eligibility rule strictly enforcing: `APPROVED`, `is_active`, `is_accepting_orders`, open during operating hours in store timezone, and customer inside delivery radius.
 - [x] Timezone-safe SQL evaluation (`safe_timestamptz_at_tz`) preventing database crashes on unrecognised timezone strings.
 - [x] Customer marketplace UI (`/stores`) with saved address dropdown, temporary map pin placement, category pills, live search, and store product catalog browsing (`/stores/:id`).
+
+### Phase 6: Shopping Cart & Single-Store Enforcement
+- [x] Persistent single customer active cart with database constraints (`UNIQUE(cart.user_id)`, `UNIQUE(cart_item.cart_id, cart_item.product_id)`).
+- [x] Strict Single-Store Invariant: Cart is anchored to one physical store (`Cart.storeId`). Products from different stores are rejected with `409 CART_STORE_CONFLICT` containing structured conflict details.
+- [x] Concurrency-safe atomic cart upsert and additions (`SELECT ... FOR UPDATE`, `ON CONFLICT DO NOTHING`).
+- [x] Dynamic availability checks: cart items reflect real-time stock levels, store active status, and order-accepting state without premature inventory decrements.
+- [x] Non-trapping quantity controls (`PATCH /api/v1/cart/items/:id`) and automatic store detachment when cart is emptied (`DELETE /api/v1/cart` or final item removal resets `storeId = null`).
+- [x] Customer cart UI (`/cart`), add-to-cart integration with single-store conflict modal on store pages, real-time Cart badge counter in navigation, and live subtotal/delivery calculations.
 
 ---
 
@@ -123,7 +133,12 @@ pnpm db:migrate
 pnpm db:generate
 ```
 
-### 6. Start development servers
+### 6. Seed sample visual data (optional)
+```bash
+pnpm seed
+```
+
+### 7. Start development servers
 ```bash
 # Start backend server (http://localhost:3001)
 pnpm dev:server
@@ -144,10 +159,11 @@ pnpm test
 ```
 
 ```
-Test Files  5 passed (5)
-     Tests  108 passed (108)
+Test Files  6 passed (6)
+     Tests  140 passed (140)
   ✓ tests/product.test.ts    (26 tests)
   ✓ tests/discovery.test.ts  (29 tests)
+  ✓ tests/cart.test.ts       (32 tests)
   ✓ tests/store.test.ts      (14 tests)
   ✓ tests/address.test.ts    (16 tests)
   ✓ tests/auth.test.ts       (23 tests)
@@ -167,7 +183,7 @@ pnpm build
 - [x] **Phase 3**: Physical Store Onboarding & Governance
 - [x] **Phase 4**: Products & Inventory Management
 - [x] **Phase 5**: PostGIS Spatial Store Discovery & Customer Marketplace Browsing
-- [ ] **Phase 6**: Shopping Cart & Single-Store Enforcement
+- [x] **Phase 6**: Shopping Cart & Single-Store Enforcement
 - [ ] **Phase 7**: Checkout, Payments & Order Fulfillment Lifecycle
 - [ ] **Phase 8**: Reviews, Ratings & Vendor Analytics
 

@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Menu, ShoppingBag, X } from 'lucide-react';
+import { MapPin, Menu, ShoppingBag, ShoppingCart, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { UserMenu } from './UserMenu';
 import { useCurrentUser } from '../../hooks/useAuth';
+import { useCart } from '../../hooks/useCart';
 import { useUiStore } from '../../store/ui.store';
 import { UserRole } from '@geomarket/shared';
 import { cn } from '../../lib/utils';
@@ -17,8 +18,12 @@ function dashboardPath(role: UserRole): string {
 
 export function Header() {
   const { data: user } = useCurrentUser();
+  const { data: cart } = useCart();
   const { mobileNavOpen, toggleMobileNav, setMobileNavOpen } = useUiStore();
   const navigate = useNavigate();
+
+  const isCustomerOrGuest = !user || user.role === UserRole.CUSTOMER;
+  const itemCount = cart?.itemCount ?? 0;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -38,6 +43,21 @@ export function Header() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/stores">Browse Stores</Link>
           </Button>
+
+          {isCustomerOrGuest && (
+            <Button variant="outline" size="sm" asChild className="relative gap-2">
+              <Link to="/cart">
+                <ShoppingCart className="h-4 w-4" />
+                <span>Cart</span>
+                {itemCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-primary-foreground bg-primary rounded-full">
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          )}
+
           {user ? (
             <UserMenu user={user} />
           ) : (
@@ -52,15 +72,31 @@ export function Header() {
           )}
         </nav>
 
-        {/* Mobile menu toggle */}
-        <button
-          className="md:hidden p-2 rounded-md hover:bg-secondary transition-colors"
-          onClick={toggleMobileNav}
-          aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
-        >
-          {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Mobile items */}
+        <div className="flex items-center gap-2 md:hidden">
+          {isCustomerOrGuest && (
+            <Button variant="ghost" size="sm" asChild className="relative p-2">
+              <Link to="/cart" aria-label="Shopping Cart">
+                <ShoppingCart className="h-5 w-5" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground bg-primary rounded-full min-w-4 h-4">
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          )}
+
+          <button
+            className="p-2 rounded-md hover:bg-secondary transition-colors"
+            onClick={toggleMobileNav}
+            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+          >
+            {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
 
       {/* Mobile drawer */}
       {mobileNavOpen && (
@@ -121,7 +157,9 @@ function getMobileNavLinks(role: UserRole) {
   return [
     { href: '/dashboard', label: 'Home' },
     { href: '/stores', label: 'Discover Stores' },
+    { href: '/cart', label: 'My Cart' },
     { href: '/addresses', label: 'My Addresses' },
     { href: '/profile', label: 'My Profile' },
   ];
 }
+

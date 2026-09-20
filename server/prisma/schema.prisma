@@ -34,6 +34,7 @@ model User {
 
   vendorProfile VendorProfile?
   addresses     CustomerAddress[]
+  cart          Cart?
 
   @@map("users")
 }
@@ -129,7 +130,7 @@ model Store {
   operatingHours StoreOperatingHours[]
 
   products       Product[]
-  // In Phase 6: carts Cart[]
+  carts          Cart[]
   // In Phase 7: orders Order[]
 
   @@index([vendorProfileId])
@@ -173,6 +174,7 @@ model Product {
 
   store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
   category          ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Restrict)
+  cartItems         CartItem[]
 
   @@unique([storeId, slug])
   @@index([storeId])
@@ -180,3 +182,36 @@ model Product {
   @@index([isActive])
   @@map("products")
 }
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique @map("user_id")
+  storeId   String?    @map("store_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store?     @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  items     CartItem[]
+
+  @@index([storeId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String   @map("cart_id")
+  productId String   @map("product_id")
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+

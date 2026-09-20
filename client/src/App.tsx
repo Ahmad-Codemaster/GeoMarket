@@ -19,12 +19,13 @@ import { CustomerProfilePage } from './pages/customer/CustomerProfilePage';
 import { SavedAddressesPage } from './pages/customer/SavedAddressesPage';
 import { StoresDiscoveryPage } from './pages/customer/StoresDiscoveryPage';
 import { StoreDetailPage } from './pages/customer/StoreDetailPage';
+import { CartPage } from './pages/customer/CartPage';
 import {
   ProductsCatalogPlaceholder,
-  CartPlaceholder,
   CheckoutPlaceholder,
   CustomerOrdersPlaceholder,
 } from './pages/customer/CustomerPlaceholders';
+
 
 // Vendor pages
 import { VendorDashboardPage } from './pages/vendor/VendorDashboardPage';
@@ -62,7 +63,7 @@ export function App() {
               <Route path="/profile" element={<CustomerProfilePage />} />
               <Route path="/addresses" element={<SavedAddressesPage />} />
               <Route path="/products" element={<ProductsCatalogPlaceholder />} />
-              <Route path="/cart" element={<CartPlaceholder />} />
+              <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPlaceholder />} />
               <Route path="/orders" element={<CustomerOrdersPlaceholder />} />
             </Route>

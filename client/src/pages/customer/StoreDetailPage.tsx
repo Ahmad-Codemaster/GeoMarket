@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Store,
   MapPin,
@@ -13,6 +13,11 @@ import {
   Star,
   CheckCircle2,
   Calendar,
+  ShoppingCart,
+  Plus,
+  Minus,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { Button } from '../../components/ui/button';
@@ -23,7 +28,19 @@ import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Skeleton } from '../../components/ui/skeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorState } from '../../components/common/ErrorState';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { useToast } from '../../hooks/useToast';
 import { useDiscoveredStore, useStoreProducts } from '../../hooks/useDiscovery';
+import { useCart, useAddToCart, useClearCart } from '../../hooks/useCart';
+import { useCurrentUser } from '../../hooks/useAuth';
+import { UserRole } from '@geomarket/shared';
 
 const DAYS_OF_WEEK = [
   'Sunday',
@@ -37,7 +54,21 @@ const DAYS_OF_WEEK = [
 
 export function StoreDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: user } = useCurrentUser();
+  const { data: cart } = useCart();
+  const addToCart = useAddToCart();
+  const clearCart = useClearCart();
+
   const [productSearch, setProductSearch] = useState('');
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
+
+  // Single-Store Conflict State
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState<{ productId: string; quantity: number; productName: string } | null>(null);
+  const [conflictCurrentStore, setConflictCurrentStore] = useState<string>('');
 
   const {
     data: store,
@@ -54,6 +85,92 @@ export function StoreDetailPage() {
   });
 
   const products = productsData?.products || [];
+
+  const getQuantity = (productId: string) => quantities[productId] || 1;
+
+  const setQuantity = (productId: string, val: number, maxStock: number) => {
+    const clamped = Math.max(1, Math.min(val, maxStock));
+    setQuantities((prev) => ({ ...prev, [productId]: clamped }));
+  };
+
+  const handleAddToCart = async (product: { id: string; name: string; stockQuantity: number }) => {
+    if (!user) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please log in to add items to your cart.',
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (user.role !== UserRole.CUSTOMER) {
+      toast({
+        title: 'Customer account required',
+        description: 'Cart operations are only available to customer accounts.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const qty = getQuantity(product.id);
+
+    try {
+      setLoadingProductId(product.id);
+      await addToCart.mutateAsync({
+        productId: product.id,
+        quantity: qty,
+      });
+
+      toast({
+        title: 'Added to cart',
+        description: `${qty} × ${product.name} added to your cart.`,
+      });
+    } catch (err: any) {
+      if (err.code === 'CART_STORE_CONFLICT') {
+        const storeNameFromError = err.details?.currentStoreName || err.currentStoreName;
+        setConflictCurrentStore(storeNameFromError || (cart?.store?.name ?? 'another store'));
+        setPendingAdd({ productId: product.id, quantity: qty, productName: product.name });
+        setConflictOpen(true);
+      } else {
+        toast({
+          title: 'Could not add item',
+          description: err.message || 'An error occurred',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setLoadingProductId(null);
+    }
+  };
+
+  const handleConfirmClearAndAdd = async () => {
+    if (!pendingAdd) return;
+
+    try {
+      setLoadingProductId(pendingAdd.productId);
+      await clearCart.mutateAsync();
+      await addToCart.mutateAsync({
+        productId: pendingAdd.productId,
+        quantity: pendingAdd.quantity,
+      });
+
+      setConflictOpen(false);
+      setPendingAdd(null);
+
+      toast({
+        title: 'Cart switched to this store',
+        description: `Previous cart cleared and ${pendingAdd.quantity} × ${pendingAdd.productName} added.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Failed to switch cart',
+        description: err.message || 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingProductId(null);
+    }
+  };
 
   if (storeLoading) {
     return (
@@ -212,15 +329,6 @@ export function StoreDetailPage() {
           )}
         </Card>
 
-        {/* Phase 5 Strict Boundary Notice */}
-        <Alert variant="info" className="bg-primary/5 border-primary/20">
-          <Info className="h-4 w-4 text-primary" />
-          <AlertTitle className="text-xs font-semibold">Phase 5 Catalog Browsing Mode</AlertTitle>
-          <AlertDescription className="text-xs text-muted-foreground">
-            You are exploring the active catalog of this merchant. Cart persistence and checkout confirmation arrive in Phase 6.
-          </AlertDescription>
-        </Alert>
-
         {/* Products Section */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -269,50 +377,149 @@ export function StoreDetailPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {products.map((product) => (
-                <Card key={product.id} className="flex flex-col justify-between overflow-hidden hover:border-primary/40 transition-colors">
-                  <CardHeader className="pb-2 space-y-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
-                      {product.category && (
-                        <Badge variant="outline" className="text-[10px] shrink-0">
-                          {product.category.name}
-                        </Badge>
-                      )}
-                    </div>
-                    {product.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {product.description}
-                      </p>
-                    )}
-                  </CardHeader>
+              {products.map((product) => {
+                const qty = getQuantity(product.id);
+                const isLoadingProduct = loadingProductId === product.id;
+                const isOutOfStock = product.stockQuantity < 1;
+                const inCartItem = cart?.items.find((i) => i.productId === product.id);
+                const inCartQuantity = inCartItem?.quantity ?? 0;
+                const maxAddable = Math.max(0, product.stockQuantity - inCartQuantity);
+                const isMaxInCart = inCartQuantity >= product.stockQuantity && product.stockQuantity > 0;
 
-                  <CardContent className="pt-2 pb-4 space-y-2">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-lg font-bold text-foreground">
-                        Rs. {product.price.toFixed(2)}
-                      </span>
-                      {product.unit && (
-                        <span className="text-xs text-muted-foreground">/ {product.unit}</span>
+                return (
+                  <Card key={product.id} className="flex flex-col justify-between overflow-hidden hover:border-primary/40 transition-colors">
+                    <CardHeader className="pb-2 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
+                        {product.category && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {product.category.name}
+                          </Badge>
+                        )}
+                      </div>
+                      {product.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {product.description}
+                        </p>
                       )}
-                    </div>
+                    </CardHeader>
 
-                    <div className="flex items-center justify-between text-xs pt-2 border-t">
-                      <span className="text-muted-foreground">Stock:</span>
-                      <Badge
-                        variant={product.stockQuantity > 0 ? 'success' : 'destructive'}
-                        className="text-[10px] py-0"
-                      >
-                        {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="pt-2 pb-4 space-y-3">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-lg font-bold text-foreground">
+                          Rs. {product.price.toFixed(2)}
+                        </span>
+                        {product.unit && (
+                          <span className="text-xs text-muted-foreground">/ {product.unit}</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-2 border-t">
+                        <span className="text-muted-foreground">Stock:</span>
+                        <div className="flex items-center gap-2">
+                          {inCartItem && (
+                            <Badge variant="secondary" className="text-[10px] py-0">
+                              {inCartItem.quantity} in cart
+                            </Badge>
+                          )}
+                          <Badge
+                            variant={!isOutOfStock ? 'success' : 'destructive'}
+                            className="text-[10px] py-0"
+                          >
+                            {!isOutOfStock ? `${product.stockQuantity} in stock` : 'Out of stock'}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Add to Cart & Quantity Controls */}
+                      <div className="pt-1 flex items-center gap-2">
+                        <div className="flex items-center border rounded-md bg-background shadow-2xs">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-7 rounded-r-none"
+                            onClick={() => setQuantity(product.id, qty - 1, maxAddable || 1)}
+                            disabled={qty <= 1 || isOutOfStock || isMaxInCart || isLoadingProduct}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-7 text-center text-xs font-semibold">
+                            {qty}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-7 rounded-l-none"
+                            onClick={() => setQuantity(product.id, qty + 1, maxAddable || 1)}
+                            disabled={qty >= maxAddable || isOutOfStock || isMaxInCart || isLoadingProduct}
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs gap-1.5 h-8"
+                          disabled={isOutOfStock || isMaxInCart || isLoadingProduct}
+                          onClick={() => handleAddToCart(product)}
+                        >
+                          {isLoadingProduct ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                          )}
+                          {isOutOfStock ? 'Out of Stock' : isMaxInCart ? 'Max in Cart' : 'Add to Cart'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
+
+      {/* Single-Store Conflict Resolution Dialog */}
+      <Dialog open={conflictOpen} onOpenChange={setConflictOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-warning mb-1">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <DialogTitle className="text-base font-bold">Different Store in Cart</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Your cart currently contains items from <strong>{conflictCurrentStore}</strong>.
+              GeoMarket enforces single-store fulfillment so your items can be dispatched by one courier.
+              <br /><br />
+              Would you like to clear your current cart and start a new order from <strong>{store.storeName}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setConflictOpen(false);
+                setPendingAdd(null);
+              }}
+            >
+              Keep Current Cart
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmClearAndAdd}
+              disabled={loadingProductId !== null}
+            >
+              {loadingProductId !== null ? 'Switching…' : 'Clear Cart & Add Item'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
+export default StoreDetailPage;
