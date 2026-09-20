@@ -1,28 +1,26 @@
-import dotenv from 'dotenv';
-import { prisma } from '../src/lib/prisma';
-
-dotenv.config({ path: '.env.test' });
-
-const MIGRATION_STATEMENTS = [
-  `DO $$ BEGIN
+-- CreateEnum
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'OrderStatus') THEN
         CREATE TYPE "OrderStatus" AS ENUM ('PLACED', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED');
     END IF;
-  END $$;`,
+END $$;
 
-  `DO $$ BEGIN
+-- CreateEnum
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PaymentMethod') THEN
         CREATE TYPE "PaymentMethod" AS ENUM ('COD');
     END IF;
-  END $$;`,
+END $$;
 
-  `DO $$ BEGIN
+-- CreateEnum
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PaymentStatus') THEN
         CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'CANCELLED');
     END IF;
-  END $$;`,
+END $$;
 
-  `CREATE TABLE IF NOT EXISTS "orders" (
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "orders" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "store_id" TEXT NOT NULL,
@@ -34,10 +32,12 @@ const MIGRATION_STATEMENTS = [
     "total_amount" DECIMAL(10,2) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
-  );`,
 
-  `CREATE TABLE IF NOT EXISTS "order_items" (
+    CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "order_items" (
     "id" TEXT NOT NULL,
     "order_id" TEXT NOT NULL,
     "product_id" TEXT,
@@ -47,10 +47,12 @@ const MIGRATION_STATEMENTS = [
     "line_total" DECIMAL(10,2) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "order_items_pkey" PRIMARY KEY ("id")
-  );`,
 
-  `CREATE TABLE IF NOT EXISTS "order_address_snapshots" (
+    CONSTRAINT "order_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "order_address_snapshots" (
     "id" TEXT NOT NULL,
     "order_id" TEXT NOT NULL,
     "recipient_name" VARCHAR(100) NOT NULL,
@@ -60,55 +62,51 @@ const MIGRATION_STATEMENTS = [
     "latitude" DECIMAL(10,8) NOT NULL,
     "longitude" DECIMAL(11,8) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "order_address_snapshots_pkey" PRIMARY KEY ("id")
-  );`,
+);
 
-  `CREATE INDEX IF NOT EXISTS "orders_user_id_idx" ON "orders"("user_id");`,
-  `CREATE INDEX IF NOT EXISTS "orders_store_id_idx" ON "orders"("store_id");`,
-  `CREATE INDEX IF NOT EXISTS "orders_status_idx" ON "orders"("status");`,
-  `CREATE INDEX IF NOT EXISTS "orders_created_at_idx" ON "orders"("created_at");`,
-  `CREATE INDEX IF NOT EXISTS "order_items_order_id_idx" ON "order_items"("order_id");`,
-  `CREATE INDEX IF NOT EXISTS "order_items_product_id_idx" ON "order_items"("product_id");`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "order_address_snapshots_order_id_key" ON "order_address_snapshots"("order_id");`,
-  `CREATE INDEX IF NOT EXISTS "order_address_snapshots_order_id_idx" ON "order_address_snapshots"("order_id");`,
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "orders_user_id_idx" ON "orders"("user_id");
+CREATE INDEX IF NOT EXISTS "orders_store_id_idx" ON "orders"("store_id");
+CREATE INDEX IF NOT EXISTS "orders_status_idx" ON "orders"("status");
+CREATE INDEX IF NOT EXISTS "orders_created_at_idx" ON "orders"("created_at");
 
-  `DO $$ BEGIN
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "order_items_order_id_idx" ON "order_items"("order_id");
+CREATE INDEX IF NOT EXISTS "order_items_product_id_idx" ON "order_items"("product_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "order_address_snapshots_order_id_key" ON "order_address_snapshots"("order_id");
+CREATE INDEX IF NOT EXISTS "order_address_snapshots_order_id_idx" ON "order_address_snapshots"("order_id");
+
+-- AddForeignKey
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_user_id_fkey') THEN
         ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
-  END $$;`,
+END $$;
 
-  `DO $$ BEGIN
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_store_id_fkey') THEN
         ALTER TABLE "orders" ADD CONSTRAINT "orders_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "stores"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
-  END $$;`,
+END $$;
 
-  `DO $$ BEGIN
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_items_order_id_fkey') THEN
         ALTER TABLE "order_items" ADD CONSTRAINT "order_items_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
-  END $$;`,
+END $$;
 
-  `DO $$ BEGIN
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_items_product_id_fkey') THEN
         ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
     END IF;
-  END $$;`,
+END $$;
 
-  `DO $$ BEGIN
+DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_address_snapshots_order_id_fkey') THEN
         ALTER TABLE "order_address_snapshots" ADD CONSTRAINT "order_address_snapshots_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
-  END $$;`,
-];
-
-beforeAll(async () => {
-  for (const stmt of MIGRATION_STATEMENTS) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-    } catch (err) {
-      console.error('Migration statement error:', err);
-    }
-  }
-});
+END $$;

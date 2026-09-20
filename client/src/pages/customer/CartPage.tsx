@@ -434,25 +434,20 @@ export function CartPage() {
                 </div>
               </div>
 
-              {/* Phase 7 Checkout Notice / Button */}
+              {/* Checkout Action */}
               <div className="pt-2 space-y-2">
                 <Button
                   className="w-full gap-2 font-semibold"
                   size="lg"
                   disabled={!cart.isValid || minOrderShortfall > 0}
-                  onClick={() => {
-                    toast({
-                      title: 'Phase 7 Boundary Notice',
-                      description: 'Order checkout, payment processing, and dispatch arrive in Phase 7.',
-                    });
-                  }}
+                  onClick={() => navigate('/checkout')}
                 >
                   Proceed to Checkout
                   <ArrowRight className="h-4 w-4" />
                 </Button>
 
                 <p className="text-[11px] text-center text-muted-foreground">
-                  Phase 6 completes persistent cart management. Order placement activates in Phase 7.
+                  Cash on Delivery • Authoritative real-time price &amp; inventory verification
                 </p>
               </div>
             </CardContent>

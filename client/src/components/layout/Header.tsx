@@ -157,6 +157,7 @@ function getMobileNavLinks(role: UserRole) {
   return [
     { href: '/dashboard', label: 'Home' },
     { href: '/stores', label: 'Discover Stores' },
+    { href: '/orders', label: 'My Orders' },
     { href: '/cart', label: 'My Cart' },
     { href: '/addresses', label: 'My Addresses' },
     { href: '/profile', label: 'My Profile' },

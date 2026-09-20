@@ -10,7 +10,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.14-indigo.svg)](https://www.prisma.io/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8.svg)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Vitest-140%20passed-success.svg)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Vitest-167%20passed-success.svg)](https://vitest.dev/)
 
 ---
 
@@ -84,6 +84,19 @@ $$\text{USER} \longrightarrow \begin{cases} \text{CUSTOMER\_ADDRESSES} \\ \text{
 - [x] Dynamic availability checks: cart items reflect real-time stock levels, store active status, and order-accepting state without premature inventory decrements.
 - [x] Non-trapping quantity controls (`PATCH /api/v1/cart/items/:id`) and automatic store detachment when cart is emptied (`DELETE /api/v1/cart` or final item removal resets `storeId = null`).
 - [x] Customer cart UI (`/cart`), add-to-cart integration with single-store conflict modal on store pages, real-time Cart badge counter in navigation, and live subtotal/delivery calculations.
+
+### Phase 7: Checkout, Cash on Delivery, and Order Fulfillment Lifecycle
+- [x] Authoritative atomic checkout transaction (`POST /api/v1/checkout`) with deterministic row locks (`SELECT ... FOR UPDATE ORDER BY id`).
+- [x] Immutable historical snapshots (`OrderItem.productNameSnapshot`, `OrderItem.unitPriceSnapshot`, `OrderAddressSnapshot`) decoupled from mutable catalog and address records.
+- [x] PostGIS spatial validation enforcing customer address within store delivery radius (`ST_DWithin`) and timezone-safe operating hours verification prior to order creation.
+- [x] Cash on Delivery (COD) payment flow with initial `PENDING` payment status.
+- [x] Atomic inventory deduction during checkout and automatic cart clearing upon success.
+- [x] Strict Order Finite State Machine (FSM):
+  - `PLACED` → `CONFIRMED` → `PREPARING` → `READY` → `OUT_FOR_DELIVERY` → `DELIVERED`
+  - Cancellation (`PLACED` / `CONFIRMED` → `CANCELLED`) with concurrency-safe atomic inventory replenishment.
+  - Terminal / locked states (`PREPARING`, `READY`, `OUT_FOR_DELIVERY`, `DELIVERED`, `CANCELLED`) reject cancellation.
+- [x] Multi-tenant RBAC: Customers access only their orders; Vendors manage only orders for their stores; 404 anti-enumeration protections.
+- [x] Customer checkout UI (`/checkout`), customer order tracking timeline (`/orders/:id`), order history list (`/orders`), and vendor order fulfillment portal (`/vendor/orders`).
 
 ---
 
@@ -159,10 +172,11 @@ pnpm test
 ```
 
 ```
-Test Files  6 passed (6)
-     Tests  140 passed (140)
+Test Files  7 passed (7)
+     Tests  167 passed (167)
   ✓ tests/product.test.ts    (26 tests)
   ✓ tests/discovery.test.ts  (29 tests)
+  ✓ tests/order.test.ts      (27 tests)
   ✓ tests/cart.test.ts       (32 tests)
   ✓ tests/store.test.ts      (14 tests)
   ✓ tests/address.test.ts    (16 tests)
@@ -204,20 +218,23 @@ pnpm build
   - Spatial filtering (`ST_DWithin`, `ST_Distance`) enforcing delivery radius validation in SQL
   - Customer marketplace browsing UI (`/stores`), address selector, category filtering, and product viewing
 
-- [x] **Phase 6: Shopping Cart & Single-Store Enforcement** *(Completed)*
-  - **Persistent Customer Cart**: Exactly one active cart per customer backed by database constraints (`UNIQUE(cart.user_id)`, `UNIQUE(cart_item.cart_id, cart_item.product_id)`).
-  - **Strict Single-Store Enforcement**: Cart is strictly bound to a single merchant (`Cart.storeId`). Adding items from another store returns `409 CART_STORE_CONFLICT` with conflict details, preventing silent cart overwrites.
-  - **Concurrency & Transaction Safety**: PostgreSQL row-level locks (`SELECT ... FOR UPDATE`) and `ON CONFLICT DO NOTHING` prevent duplicate carts and race conditions during simultaneous additions.
-  - **Stock & Availability Derivation**: Real-time validation against stock limits, merchant active status, and store order-accepting state without premature inventory decrements (`Cart quantity ≠ reserved inventory`).
-  - **Customer Cart UI & Integration**: Full-featured `/cart` page with line item management, non-trapping quantity steppers, clear cart confirmation, and interactive store-switch modal on catalog pages.
-  - **32 Automated Tests**: 100% passing test coverage verifying cart creation, single-store invariant, quantity boundaries, product states, concurrency, and tenant isolation (140 tests total across the platform).
+- [x] **Phase 6: Shopping Cart & Single-Store Enforcement**
+  - Persistent customer cart with database constraints (`UNIQUE(cart.user_id)`, `UNIQUE(cart_item.cart_id, cart_item.product_id)`)
+  - Strict Single-Store Invariant: Cart is anchored to one physical store (`Cart.storeId`), rejecting cross-store additions with `409 CART_STORE_CONFLICT`
+  - Concurrency-safe atomic cart upsert and additions (`SELECT ... FOR UPDATE`, `ON CONFLICT DO NOTHING`)
+  - Real-time stock awareness, non-trapping steppers, and customer cart UI (`/cart`)
 
-- [ ] **Phase 7: Checkout, Payments & Order Fulfillment Lifecycle**
-  - Immutable order price and delivery address snapshots
-  - Authoritative inventory reservation & decrement during order placement
-  - Cash on Delivery (COD) payment flow & verification
-  - Order Finite State Machine (`PLACED` → `CONFIRMED` → `PREPARING` → `OUT_FOR_DELIVERY` → `DELIVERED` / `CANCELLED`)
-  - Courier assignment and live status progression
+- [x] **Phase 7: Checkout, Cash on Delivery, and Order Fulfillment Lifecycle** *(Completed)*
+  - **Authoritative Atomic Checkout**: Full transaction (`POST /api/v1/checkout`) with deterministic row locks (`SELECT ... FOR UPDATE ORDER BY id`) re-verifying stock and prices under lock.
+  - **Immutable Snapshots**: `OrderItem.productNameSnapshot`, `OrderItem.unitPriceSnapshot`, and `OrderAddressSnapshot` decouple historical orders from mutable product catalog and address rows.
+  - **Spatial & Timezone Validation**: PostGIS geospatial verification (`ST_DWithin`) enforcing customer address within store delivery radius and timezone-safe operating hours verification.
+  - **Cash on Delivery (COD)**: Payment status lifecycle (`PENDING` $\rightarrow$ `PAID` / `CANCELLED`) with automatic cart clearing upon successful checkout.
+  - **Order Finite State Machine (FSM)**:
+    - Valid progression: `PLACED` $\rightarrow$ `CONFIRMED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY` $\rightarrow$ `OUT_FOR_DELIVERY` $\rightarrow$ `DELIVERED`
+    - Cancellation: `PLACED` / `CONFIRMED` $\rightarrow$ `CANCELLED` with concurrency-safe atomic inventory restoration.
+    - Terminal / locked states: `PREPARING`, `READY`, `OUT_FOR_DELIVERY`, `DELIVERED`, `CANCELLED` reject cancellation.
+  - **Role-Based Tenant Isolation**: Customer order tracking (`/orders/:id`), order history list (`/orders`), and vendor order fulfillment portal (`/vendor/orders`).
+  - **27 Automated Tests**: Integration and concurrency tests covering checkout success, address security, store eligibility, PostGIS radius checks, stock deduction, rollback, cancellation restoration, FSM transitions, and historical snapshot immutability (167 tests total across the platform).
 
 - [ ] **Phase 8: Reviews, Ratings & Vendor Analytics**
   - Verified-purchase product and store reviews

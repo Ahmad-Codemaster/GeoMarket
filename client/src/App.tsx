@@ -20,11 +20,10 @@ import { SavedAddressesPage } from './pages/customer/SavedAddressesPage';
 import { StoresDiscoveryPage } from './pages/customer/StoresDiscoveryPage';
 import { StoreDetailPage } from './pages/customer/StoreDetailPage';
 import { CartPage } from './pages/customer/CartPage';
-import {
-  ProductsCatalogPlaceholder,
-  CheckoutPlaceholder,
-  CustomerOrdersPlaceholder,
-} from './pages/customer/CustomerPlaceholders';
+import { CheckoutPage } from './pages/customer/CheckoutPage';
+import { CustomerOrdersPage } from './pages/customer/CustomerOrdersPage';
+import { OrderDetailPage } from './pages/customer/OrderDetailPage';
+import { ProductsCatalogPlaceholder } from './pages/customer/CustomerPlaceholders';
 
 
 // Vendor pages
@@ -64,8 +63,9 @@ export function App() {
               <Route path="/addresses" element={<SavedAddressesPage />} />
               <Route path="/products" element={<ProductsCatalogPlaceholder />} />
               <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPlaceholder />} />
-              <Route path="/orders" element={<CustomerOrdersPlaceholder />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/orders" element={<CustomerOrdersPage />} />
+              <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             </Route>
 
             {/* Vendor Routes — VENDOR role required */}

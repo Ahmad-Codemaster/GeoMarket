@@ -35,6 +35,7 @@ model User {
   vendorProfile VendorProfile?
   addresses     CustomerAddress[]
   cart          Cart?
+  orders        Order[]
 
   @@map("users")
 }
@@ -131,7 +132,7 @@ model Store {
 
   products       Product[]
   carts          Cart[]
-  // In Phase 7: orders Order[]
+  orders         Order[]
 
   @@index([vendorProfileId])
   @@index([storeCategoryId])
@@ -175,6 +176,7 @@ model Product {
   store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
   category          ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Restrict)
   cartItems         CartItem[]
+  orderItems        OrderItem[]
 
   @@unique([storeId, slug])
   @@index([storeId])
@@ -213,5 +215,86 @@ model CartItem {
   @@index([cartId])
   @@index([productId])
   @@map("cart_items")
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  storeId       String        @map("store_id")
+  status        OrderStatus   @default(PLACED)
+  paymentMethod PaymentMethod @default(COD) @map("payment_method")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  subtotal      Decimal       @db.Decimal(10, 2)
+  deliveryFee   Decimal       @default(0.00) @map("delivery_fee") @db.Decimal(10, 2)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store           Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  addressSnapshot OrderAddressSnapshot?
+
+  @@index([userId])
+  @@index([storeId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String   @id @default(uuid())
+  orderId             String   @map("order_id")
+  productId           String?  @map("product_id")
+  productNameSnapshot String   @map("product_name_snapshot") @db.VarChar(255)
+  unitPriceSnapshot   Decimal  @map("unit_price_snapshot") @db.Decimal(10, 2)
+  quantity            Int      @default(1)
+  lineTotal           Decimal  @map("line_total") @db.Decimal(10, 2)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderAddressSnapshot {
+  id             String   @id @default(uuid())
+  orderId        String   @unique @map("order_id")
+  recipientName  String   @map("recipient_name") @db.VarChar(100)
+  recipientPhone String   @map("recipient_phone") @db.VarChar(20)
+  address        String   @db.VarChar(500)
+  city           String   @db.VarChar(100)
+  latitude       Decimal  @db.Decimal(10, 8)
+  longitude      Decimal  @db.Decimal(11, 8)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_address_snapshots")
 }
 

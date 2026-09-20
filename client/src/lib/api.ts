@@ -28,6 +28,11 @@ import type {
   AddToCartDto,
   UpdateCartItemDto,
   CartConflictErrorDetails,
+  OrderDto,
+  OrderItemDto,
+  OrderStatus,
+  CheckoutInputDto,
+  UpdateOrderStatusDto,
 } from '@geomarket/shared';
 
 const BASE = '/api/v1';
@@ -421,6 +426,57 @@ export const cartApi = {
   clearCart: () =>
     apiFetch<{ cart: CartDto }>('/cart', {
       method: 'DELETE',
+    }),
+};
+
+// ─── Checkout & Orders ────────────────────────────────────────────────────────
+
+export const checkoutApi = {
+  checkout: (data: CheckoutInputDto) =>
+    apiFetch<{ order: OrderDto }>('/checkout', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+export const orderApi = {
+  getCustomerOrders: (page = 1, pageSize = 20) =>
+    apiFetch<{ orders: OrderDto[]; total: number; page: number; pageSize: number }>(
+      `/orders?page=${page}&pageSize=${pageSize}`
+    ),
+
+  getCustomerOrder: (orderId: string) =>
+    apiFetch<{ order: OrderDto }>(`/orders/${orderId}`),
+
+  cancelOrder: (orderId: string) =>
+    apiFetch<{ order: OrderDto }>(`/orders/${orderId}/cancel`, {
+      method: 'PATCH',
+    }),
+
+  getVendorOrders: (params?: {
+    storeId?: string;
+    status?: OrderStatus;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params?.storeId) sp.append('storeId', params.storeId);
+    if (params?.status) sp.append('status', params.status);
+    if (params?.page) sp.append('page', String(params.page));
+    if (params?.pageSize) sp.append('pageSize', String(params.pageSize));
+    const qs = sp.toString();
+    return apiFetch<{ orders: OrderDto[]; total: number; page: number; pageSize: number }>(
+      `/vendor/orders${qs ? `?${qs}` : ''}`
+    );
+  },
+
+  getVendorOrder: (orderId: string) =>
+    apiFetch<{ order: OrderDto }>(`/vendor/orders/${orderId}`),
+
+  updateVendorOrderStatus: (orderId: string, status: OrderStatus) =>
+    apiFetch<{ order: OrderDto }>(`/vendor/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
 };
 

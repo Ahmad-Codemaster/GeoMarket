@@ -8,6 +8,10 @@ import adminStoreRouter from '../modules/store/adminStore.router';
 import vendorProductRouter from '../modules/product/vendorProduct.router';
 import discoveryRouter from '../modules/discovery/discovery.router';
 import cartRouter from '../modules/cart/cart.router';
+import checkoutRouter from '../modules/order/checkout.router';
+import orderRouter from '../modules/order/order.router';
+import vendorOrderRouter from '../modules/order/vendorOrder.router';
+import adminOrderRouter from '../modules/order/adminOrder.router';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -40,5 +44,9 @@ router.use('/vendor/products', vendorProductRouter);
 router.use('/admin/stores', adminStoreRouter);
 router.use('/discovery', discoveryRouter);
 router.use('/cart', cartRouter);
+router.use('/checkout', checkoutRouter);
+router.use('/orders', orderRouter);
+router.use('/vendor/orders', vendorOrderRouter);
+router.use('/admin/orders', adminOrderRouter);
 
 export default router;

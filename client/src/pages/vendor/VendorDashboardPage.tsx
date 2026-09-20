@@ -8,11 +8,13 @@ import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useVendorStores } from '../../hooks/useStores';
 import { useVendorProducts } from '../../hooks/useProducts';
+import { useVendorOrders } from '../../hooks/useOrders';
 
 export function VendorDashboardPage() {
   const { data: user } = useCurrentUser();
   const { data: stores = [] } = useVendorStores();
   const { data: products = [] } = useVendorProducts();
+  const { data: ordersData } = useVendorOrders();
 
   return (
     <PageContainer width="wide">
@@ -93,9 +95,9 @@ export function VendorDashboardPage() {
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{ordersData?.total ?? 0}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Order processing arrives in Phase 6
+                {ordersData?.total === 1 ? '1 incoming order' : `${ordersData?.total ?? 0} incoming orders`}
               </p>
               <div className="mt-4 pt-3 border-t">
                 <Button variant="ghost" size="sm" className="w-full justify-between px-0 h-auto text-xs" asChild>

@@ -15,11 +15,13 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useAddresses } from '../../hooks/useAddresses';
+import { useCustomerOrders } from '../../hooks/useOrders';
 import { LocationPickerModal } from '../../components/location/LocationPickerModal';
 
 export function CustomerDashboardPage() {
   const { data: user } = useCurrentUser();
   const { data: addresses, refetch } = useAddresses();
+  const { data: ordersData } = useCustomerOrders();
   const [locationModalOpen, setLocationModalOpen] = useState(false);
 
   const defaultAddress = addresses?.find((a) => a.isDefault) || addresses?.[0];
@@ -125,7 +127,9 @@ export function CustomerDashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-4">
-                Order lifecycle tracking and immutable order snapshots activate in Phase 7.
+                {ordersData && ordersData.total > 0
+                  ? `You have placed ${ordersData.total} order${ordersData.total > 1 ? 's' : ''}. Track status and view historical receipts.`
+                  : 'Track live order progress, review delivery receipts, and manage cancellations.'}
               </p>
               <Button variant="outline" size="sm" className="w-full" asChild>
                 <Link to="/orders">Order History</Link>
