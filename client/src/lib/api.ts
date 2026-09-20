@@ -33,6 +33,12 @@ import type {
   OrderStatus,
   CheckoutInputDto,
   UpdateOrderStatusDto,
+  ReviewDto,
+  CreateReviewDto,
+  UpdateReviewDto,
+  StoreReviewsResponseDto,
+  VendorAnalyticsDto,
+  AnalyticsPeriod,
 } from '@geomarket/shared';
 
 const BASE = '/api/v1';
@@ -478,6 +484,60 @@ export const orderApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
+};
+
+// ─── Reviews & Ratings ────────────────────────────────────────────────────────
+
+export const reviewApi = {
+  createReview: (data: CreateReviewDto) =>
+    apiFetch<{ review: ReviewDto }>('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getOrderReview: (orderId: string) =>
+    apiFetch<{ review: ReviewDto }>(`/reviews/order/${orderId}`),
+
+  getStoreReviews: (storeId: string, page = 1, pageSize = 10) =>
+    apiFetch<StoreReviewsResponseDto>(
+      `/reviews/store/${storeId}?page=${page}&pageSize=${pageSize}`
+    ),
+
+  updateReview: (reviewId: string, data: UpdateReviewDto) =>
+    apiFetch<{ review: ReviewDto }>(`/reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteReview: (reviewId: string) =>
+    apiFetch<{ success: boolean }>(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    }),
+
+  getVendorReviews: (params?: { storeId?: string; page?: number; pageSize?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.storeId) sp.append('storeId', params.storeId);
+    if (params?.page) sp.append('page', String(params.page));
+    if (params?.pageSize) sp.append('pageSize', String(params.pageSize));
+    const qs = sp.toString();
+    return apiFetch<{ reviews: ReviewDto[]; total: number; page: number; pageSize: number }>(
+      `/vendor/reviews${qs ? `?${qs}` : ''}`
+    );
+  },
+};
+
+// ─── Vendor Operational Analytics ─────────────────────────────────────────────
+
+export const analyticsApi = {
+  getVendorAnalytics: (params?: { storeId?: string; period?: AnalyticsPeriod }) => {
+    const sp = new URLSearchParams();
+    if (params?.storeId) sp.append('storeId', params.storeId);
+    if (params?.period) sp.append('period', params.period);
+    const qs = sp.toString();
+    return apiFetch<{ analytics: VendorAnalyticsDto }>(
+      `/vendor/analytics${qs ? `?${qs}` : ''}`
+    );
+  },
 };
 
 

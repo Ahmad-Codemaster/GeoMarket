@@ -10,7 +10,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.14-indigo.svg)](https://www.prisma.io/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8.svg)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Vitest-167%20passed-success.svg)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Vitest-188%20passed-success.svg)](https://vitest.dev/)
 
 ---
 
@@ -98,6 +98,16 @@ $$\text{USER} \longrightarrow \begin{cases} \text{CUSTOMER\_ADDRESSES} \\ \text{
 - [x] Multi-tenant RBAC: Customers access only their orders; Vendors manage only orders for their stores; 404 anti-enumeration protections.
 - [x] Customer checkout UI (`/checkout`), customer order tracking timeline (`/orders/:id`), order history list (`/orders`), and vendor order fulfillment portal (`/vendor/orders`).
 
+### Phase 8: Reviews, Ratings & Vendor Analytics
+- [x] Verified-purchase store review system with strict database-level unique constraint (`UNIQUE(order_id)`).
+- [x] Delivered-order eligibility: Customers can submit reviews only for their own `DELIVERED` orders belonging to the store.
+- [x] 1–5 star rating scale with database CHECK constraint (`rating >= 1 AND rating <= 5`) and optional text comments.
+- [x] Transactional store rating aggregation: Computes and updates `averageRating` and `totalReviews` on `Store` atomically upon review creation, edit, or deletion.
+- [x] Strict customer privacy: Sanitizes public store reviews and vendor analytics to never leak private `orderId` or internal `userId`.
+- [x] Operational vendor analytics: Computes `totalOrders`, `deliveredOrders`, `cancelledOrders`, `revenue` (from finalized delivered orders), `averageOrderValue`, `averageRating`, `reviewCount`, and recent feedback.
+- [x] Timezone-aware date range filtering (`today`, `last_7_days`, `last_30_days`, `all_time`) adhering to store local timezone.
+- [x] Customer review UI on delivered orders (`/orders/:id`), public store reviews & star display on marketplace store pages (`/stores/:id`), and vendor analytics dashboard (`/vendor`).
+
 ---
 
 ## 🛠 Tech Stack
@@ -172,13 +182,14 @@ pnpm test
 ```
 
 ```
-Test Files  7 passed (7)
-     Tests  167 passed (167)
+Test Files  8 passed (8)
+     Tests  188 passed (188)
   ✓ tests/product.test.ts    (26 tests)
   ✓ tests/discovery.test.ts  (29 tests)
   ✓ tests/order.test.ts      (27 tests)
   ✓ tests/cart.test.ts       (32 tests)
   ✓ tests/store.test.ts      (14 tests)
+  ✓ tests/review.test.ts     (21 tests)
   ✓ tests/address.test.ts    (16 tests)
   ✓ tests/auth.test.ts       (23 tests)
 ```
@@ -224,22 +235,24 @@ pnpm build
   - Concurrency-safe atomic cart upsert and additions (`SELECT ... FOR UPDATE`, `ON CONFLICT DO NOTHING`)
   - Real-time stock awareness, non-trapping steppers, and customer cart UI (`/cart`)
 
-- [x] **Phase 7: Checkout, Cash on Delivery, and Order Fulfillment Lifecycle** *(Completed)*
-  - **Authoritative Atomic Checkout**: Full transaction (`POST /api/v1/checkout`) with deterministic row locks (`SELECT ... FOR UPDATE ORDER BY id`) re-verifying stock and prices under lock.
-  - **Immutable Snapshots**: `OrderItem.productNameSnapshot`, `OrderItem.unitPriceSnapshot`, and `OrderAddressSnapshot` decouple historical orders from mutable product catalog and address rows.
-  - **Spatial & Timezone Validation**: PostGIS geospatial verification (`ST_DWithin`) enforcing customer address within store delivery radius and timezone-safe operating hours verification.
-  - **Cash on Delivery (COD)**: Payment status lifecycle (`PENDING` $\rightarrow$ `PAID` / `CANCELLED`) with automatic cart clearing upon successful checkout.
-  - **Order Finite State Machine (FSM)**:
-    - Valid progression: `PLACED` $\rightarrow$ `CONFIRMED` $\rightarrow$ `PREPARING` $\rightarrow$ `READY` $\rightarrow$ `OUT_FOR_DELIVERY` $\rightarrow$ `DELIVERED`
-    - Cancellation: `PLACED` / `CONFIRMED` $\rightarrow$ `CANCELLED` with concurrency-safe atomic inventory restoration.
-    - Terminal / locked states: `PREPARING`, `READY`, `OUT_FOR_DELIVERY`, `DELIVERED`, `CANCELLED` reject cancellation.
-  - **Role-Based Tenant Isolation**: Customer order tracking (`/orders/:id`), order history list (`/orders`), and vendor order fulfillment portal (`/vendor/orders`).
-  - **27 Automated Tests**: Integration and concurrency tests covering checkout success, address security, store eligibility, PostGIS radius checks, stock deduction, rollback, cancellation restoration, FSM transitions, and historical snapshot immutability (167 tests total across the platform).
+- [x] **Phase 7: Checkout, Cash on Delivery, and Order Fulfillment Lifecycle**
+  - Authoritative atomic checkout transaction (`POST /api/v1/checkout`) with deterministic row locks (`SELECT ... FOR UPDATE ORDER BY id`)
+  - Immutable historical snapshots (`OrderItem.productNameSnapshot`, `OrderItem.unitPriceSnapshot`, `OrderAddressSnapshot`)
+  - PostGIS spatial delivery radius validation (`ST_DWithin`) and timezone-safe operating hours verification
+  - Cash on Delivery (COD) payment flow with atomic inventory deduction and cart clearing
+  - Order Finite State Machine (`PLACED` → `CONFIRMED` → `PREPARING` → `READY` → `OUT_FOR_DELIVERY` → `DELIVERED` / `CANCELLED`)
+  - Customer order tracking UI (`/orders/:id`), order history (`/orders`), and vendor fulfillment queue (`/vendor/orders`)
 
-- [ ] **Phase 8: Reviews, Ratings & Vendor Analytics**
-  - Verified-purchase product and store reviews
-  - Aggregated 5-star rating computations
-  - Vendor sales dashboards, revenue metrics, and performance analytics
+- [x] **Phase 8: Reviews, Ratings & Vendor Analytics** *(Completed)*
+  - **Verified-Purchase Reviews**: Exactly one review per order enforced at the database level (`UNIQUE(order_id)`).
+  - **Delivered Order Eligibility**: Only authenticated customers who own a `DELIVERED` order can review its store.
+  - **1–5 Star Rating Scale**: Validated with database CHECK constraints and optional customer text comments.
+  - **Transactional Rating Aggregation**: Atomic calculation and synchronization of `averageRating` and `totalReviews` on `Store` records upon review creation, edit, or deletion.
+  - **Strict Customer Privacy**: Public store reviews and vendor analytics strictly sanitize private order IDs and internal user IDs.
+  - **Tenant-Isolated Operational Analytics**: Vendor metrics computed directly via database aggregations (`totalOrders`, `deliveredOrders`, `cancelledOrders`, `revenue`, `averageOrderValue`, `averageRating`, `reviewCount`, and recent feedback).
+  - **Timezone-Aware Date Range Filtering**: Support for `today`, `last_7_days`, `last_30_days`, and `all_time` aligned with store local time.
+  - **UI Integration**: Customer review leave/edit modal on order tracking page (`/orders/:id`), store rating summary and public reviews on store pages (`/stores/:id`), and vendor operational analytics dashboard (`/vendor`).
+  - **21 Automated Tests**: 100% passing test coverage verifying review creation, rejections, unique constraints, rating aggregation, privacy, vendor tenant isolation, and period filtering (188 tests total across the platform).
 
 ---
 

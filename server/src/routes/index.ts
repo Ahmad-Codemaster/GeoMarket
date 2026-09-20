@@ -12,6 +12,9 @@ import checkoutRouter from '../modules/order/checkout.router';
 import orderRouter from '../modules/order/order.router';
 import vendorOrderRouter from '../modules/order/vendorOrder.router';
 import adminOrderRouter from '../modules/order/adminOrder.router';
+import reviewRouter from '../modules/review/review.router';
+import vendorReviewRouter from '../modules/review/vendorReview.router';
+import vendorAnalyticsRouter from '../modules/analytics/vendorAnalytics.router';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -48,5 +51,8 @@ router.use('/checkout', checkoutRouter);
 router.use('/orders', orderRouter);
 router.use('/vendor/orders', vendorOrderRouter);
 router.use('/admin/orders', adminOrderRouter);
+router.use('/reviews', reviewRouter);
+router.use('/vendor/reviews', vendorReviewRouter);
+router.use('/vendor/analytics', vendorAnalyticsRouter);
 
 export default router;

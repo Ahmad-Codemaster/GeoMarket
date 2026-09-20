@@ -40,6 +40,7 @@ import { useToast } from '../../hooks/useToast';
 import { useDiscoveredStore, useStoreProducts } from '../../hooks/useDiscovery';
 import { useCart, useAddToCart, useClearCart } from '../../hooks/useCart';
 import { useCurrentUser } from '../../hooks/useAuth';
+import { useStoreReviews } from '../../hooks/useReviews';
 import { UserRole } from '@geomarket/shared';
 
 const DAYS_OF_WEEK = [
@@ -83,6 +84,12 @@ export function StoreDetailPage() {
   } = useStoreProducts(id || '', {
     search: productSearch.trim() || undefined,
   });
+
+  const [reviewPage, setReviewPage] = useState(1);
+  const {
+    data: reviewsData,
+    isLoading: reviewsLoading,
+  } = useStoreReviews(id || '', reviewPage, 5);
 
   const products = productsData?.products || [];
 
@@ -247,10 +254,18 @@ export function StoreDetailPage() {
                   >
                     {store.isAcceptingOrders ? 'Accepting Orders' : 'Orders Paused'}
                   </Badge>
-                  {store.averageRating > 0 && (
-                    <Badge variant="outline" className="text-xs gap-1">
+                  {store.averageRating > 0 ? (
+                    <Badge variant="outline" className="text-xs gap-1 font-semibold">
                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                       <span>{store.averageRating.toFixed(1)}</span>
+                      <span className="text-muted-foreground font-normal">
+                        ({store.totalReviews} {store.totalReviews === 1 ? 'review' : 'reviews'})
+                      </span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+                      <Star className="h-3 w-3 text-muted-foreground" />
+                      <span>No reviews yet</span>
                     </Badge>
                   )}
                 </div>
@@ -477,6 +492,123 @@ export function StoreDetailPage() {
                   </Card>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Customer Reviews & Ratings Section */}
+        <div className="space-y-4 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                Customer Reviews &amp; Ratings
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Verified customer ratings from fulfilled orders
+              </p>
+            </div>
+            {reviewsData && reviewsData.reviewCount > 0 && (
+              <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border text-xs">
+                <span className="font-bold text-sm">{reviewsData.averageRating.toFixed(1)}</span>
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className={`h-3.5 w-3.5 ${
+                        s <= Math.round(reviewsData.averageRating)
+                          ? 'text-amber-400 fill-amber-400'
+                          : 'text-muted stroke-muted-foreground/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-muted-foreground">
+                  ({reviewsData.reviewCount} {reviewsData.reviewCount === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {reviewsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : !reviewsData || reviewsData.reviews.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-xs text-muted-foreground">
+                <Star className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="font-semibold text-sm text-foreground">No Reviews Yet</p>
+                <p className="mt-1">Be the first to review this store after your order is delivered!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {reviewsData.reviews.map((rev) => (
+                <Card key={rev.id} className="p-4 border-border/80">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-xs text-foreground">
+                        {rev.customerName || 'Verified Customer'}
+                      </p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`h-3 w-3 ${
+                                s <= rev.rating
+                                  ? 'text-amber-400 fill-amber-400'
+                                  : 'text-muted stroke-muted-foreground/30'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground ml-1">
+                          {rev.rating}/5
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(rev.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {rev.comment && (
+                    <p className="text-xs text-foreground/90 mt-2.5 leading-relaxed bg-muted/20 p-2.5 rounded border border-border/40 whitespace-pre-wrap">
+                      {rev.comment}
+                    </p>
+                  )}
+                </Card>
+              ))}
+
+              {/* Pagination */}
+              {Math.ceil(reviewsData.total / reviewsData.pageSize) > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                    disabled={reviewPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {reviewsData.page} of {Math.ceil(reviewsData.total / reviewsData.pageSize)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setReviewPage((p) => p + 1)}
+                    disabled={reviewPage >= Math.ceil(reviewsData.total / reviewsData.pageSize)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

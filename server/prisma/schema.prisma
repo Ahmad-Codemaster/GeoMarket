@@ -36,6 +36,7 @@ model User {
   addresses     CustomerAddress[]
   cart          Cart?
   orders        Order[]
+  reviews       Review[]
 
   @@map("users")
 }
@@ -133,6 +134,7 @@ model Store {
   products       Product[]
   carts          Cart[]
   orders         Order[]
+  reviews        Review[]
 
   @@index([vendorProfileId])
   @@index([storeCategoryId])
@@ -254,6 +256,7 @@ model Order {
   store           Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items           OrderItem[]
   addressSnapshot OrderAddressSnapshot?
+  review          Review?
 
   @@index([userId])
   @@index([storeId])
@@ -296,5 +299,25 @@ model OrderAddressSnapshot {
 
   @@index([orderId])
   @@map("order_address_snapshots")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  orderId   String   @unique @map("order_id")
+  userId    String   @map("user_id")
+  storeId   String   @map("store_id")
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([userId])
+  @@index([orderId])
+  @@map("reviews")
 }
 

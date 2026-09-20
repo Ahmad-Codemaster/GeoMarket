@@ -6,3 +6,5 @@ export * from './types/product';
 export * from './types/discovery';
 export * from './types/cart';
 export * from './types/order';
+export * from './types/review';
+export * from './types/analytics';
