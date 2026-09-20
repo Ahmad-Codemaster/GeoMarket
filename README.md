@@ -178,14 +178,51 @@ pnpm build
 
 ## 🗺 Roadmap
 
-- [x] **Phase 1**: Authentication, RBAC & Monorepo Foundation
-- [x] **Phase 2**: Customer Addresses & Location Abstractions
-- [x] **Phase 3**: Physical Store Onboarding & Governance
-- [x] **Phase 4**: Products & Inventory Management
-- [x] **Phase 5**: PostGIS Spatial Store Discovery & Customer Marketplace Browsing
-- [x] **Phase 6**: Shopping Cart & Single-Store Enforcement
-- [ ] **Phase 7**: Checkout, Payments & Order Fulfillment Lifecycle
-- [ ] **Phase 8**: Reviews, Ratings & Vendor Analytics
+- [x] **Phase 1: Authentication, RBAC & Monorepo Foundation**
+  - Secure HttpOnly/SameSite JWT cookie session mechanism
+  - BCrypt password hashing & `CUSTOMER` / `VENDOR` / `ADMIN` role-based access control
+  - Clean modular monolith monorepo with `@geomarket/shared` contracts
+
+- [x] **Phase 2: Customer Addresses & Location Abstractions**
+  - Geographic delivery address management with coordinate precision
+  - Database partial unique index enforcing strictly one default address per customer
+  - Map tile and geocoding provider abstractions with interactive pin-drop modal
+
+- [x] **Phase 3: Physical Store Onboarding & Governance**
+  - Physical store entity with spatial coordinates & configurable delivery radius (km)
+  - Operating hours matrix with same-day chronological validation
+  - Store Status FSM (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `SUSPENDED`)
+  - Vendor store portal & Admin approval workflow
+
+- [x] **Phase 4: Products & Inventory Management**
+  - Store-scoped product catalog with unique slugs (`UNIQUE(store_id, slug)`)
+  - Concurrency-safe atomic inventory adjustments powered by PostgreSQL row locks (`SELECT ... FOR UPDATE`)
+  - Stock non-negativity invariant (`INSUFFICIENT_STOCK`)
+
+- [x] **Phase 5: PostGIS Spatial Store Discovery & Customer Marketplace Browsing**
+  - Native PostGIS geography point column (`Point, 4326`) and GiST spatial index (`stores_location_gist_idx`)
+  - Spatial filtering (`ST_DWithin`, `ST_Distance`) enforcing delivery radius validation in SQL
+  - Customer marketplace browsing UI (`/stores`), address selector, category filtering, and product viewing
+
+- [x] **Phase 6: Shopping Cart & Single-Store Enforcement** *(Completed)*
+  - **Persistent Customer Cart**: Exactly one active cart per customer backed by database constraints (`UNIQUE(cart.user_id)`, `UNIQUE(cart_item.cart_id, cart_item.product_id)`).
+  - **Strict Single-Store Enforcement**: Cart is strictly bound to a single merchant (`Cart.storeId`). Adding items from another store returns `409 CART_STORE_CONFLICT` with conflict details, preventing silent cart overwrites.
+  - **Concurrency & Transaction Safety**: PostgreSQL row-level locks (`SELECT ... FOR UPDATE`) and `ON CONFLICT DO NOTHING` prevent duplicate carts and race conditions during simultaneous additions.
+  - **Stock & Availability Derivation**: Real-time validation against stock limits, merchant active status, and store order-accepting state without premature inventory decrements (`Cart quantity ≠ reserved inventory`).
+  - **Customer Cart UI & Integration**: Full-featured `/cart` page with line item management, non-trapping quantity steppers, clear cart confirmation, and interactive store-switch modal on catalog pages.
+  - **32 Automated Tests**: 100% passing test coverage verifying cart creation, single-store invariant, quantity boundaries, product states, concurrency, and tenant isolation (140 tests total across the platform).
+
+- [ ] **Phase 7: Checkout, Payments & Order Fulfillment Lifecycle**
+  - Immutable order price and delivery address snapshots
+  - Authoritative inventory reservation & decrement during order placement
+  - Cash on Delivery (COD) payment flow & verification
+  - Order Finite State Machine (`PLACED` → `CONFIRMED` → `PREPARING` → `OUT_FOR_DELIVERY` → `DELIVERED` / `CANCELLED`)
+  - Courier assignment and live status progression
+
+- [ ] **Phase 8: Reviews, Ratings & Vendor Analytics**
+  - Verified-purchase product and store reviews
+  - Aggregated 5-star rating computations
+  - Vendor sales dashboards, revenue metrics, and performance analytics
 
 ---
 
