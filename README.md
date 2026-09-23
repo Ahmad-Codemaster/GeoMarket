@@ -14,6 +14,14 @@
 
 ---
 
+## 📖 Introduction
+
+GeoMarket is a modern, location-first multi-vendor marketplace designed to connect customers with local physical stores based on real-time geographic proximity. Instead of a traditional global catalog, GeoMarket dynamically filters and surfaces stores and products based on the customer's exact location, the store's delivery radius, and real-time operating hours. 
+
+Built on a robust stack utilizing **Node.js, React, PostgreSQL, and PostGIS**, it enforces strict marketplace invariants—such as atomic inventory concurrency, single-store cart constraints, and complex geographic eligibility rules—to ensure a seamless and reliable hyper-local shopping experience. Whether you're a customer discovering local goods, a vendor managing multiple physical storefronts, or an admin overseeing platform governance, GeoMarket provides a comprehensive, enterprise-grade foundation.
+
+---
+
 ## 🏛 Architecture Overview
 
 GeoMarket is structured as a **Clean Modular Monolith** within a `pnpm` workspace:
