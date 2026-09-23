@@ -284,5 +284,25 @@ pnpm build
 
 ---
 
+## 📖 Architecture & Documentation
+
+The GeoMarket technical specifications, system requirements, and academic defense materials are organized into modular, focused documents:
+
+* **[Master Architectural Specification](docs/master_document.md)** — Master architectural index, system topology, and component breakdown.
+  * [01 — Overview, System Architecture & Page Tree](docs/architecture/01_overview_and_page_tree.md)
+  * [02 — Page-by-Page Technical Specifications](docs/architecture/02_page_specifications.md)
+  * [03 — Domain Workflows, Application Trees & Role Boundaries](docs/architecture/03_domain_workflows_and_roles.md)
+  * [04 — Technical Data Flows & Concurrency Controls](docs/architecture/04_technical_data_flows.md)
+  * [05 — Academic Defense, Viva Preparation & Glossary](docs/architecture/05_academic_defense_and_glossary.md)
+* **[System Requirements Specification](docs/SYSTEM_REQUIREMENTS_AND_ARCHITECTURE_SPECIFICATION.md)** — Requirements specification index and business rules.
+  * [01 — System Overview & Scope](docs/requirements/01_system_overview_and_scope.md)
+  * [02 — Functional Requirements](docs/requirements/02_functional_requirements.md)
+  * [03 — Database Architecture & ERD](docs/requirements/03_database_and_erd.md)
+  * [04 — Order FSM & Security Architecture](docs/requirements/04_order_fsm_and_security.md)
+* **[Project Plan & Review Document](docs/PROJECT_PLAN_AND_REVIEW_DOCUMENT.md)** — Implementation phases, verification checkpoints, and deliverables.
+
+---
+
 ## 📄 License
 Private repository. All rights reserved.
+
