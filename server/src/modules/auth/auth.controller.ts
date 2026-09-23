@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { registerCustomerSchema, registerVendorSchema, loginSchema } from './auth.schemas';
+import { registerCustomerSchema, registerVendorSchema, loginSchema, guestSessionSchema } from './auth.schemas';
 import * as authService from './auth.service';
 import { env } from '../../config/env';
 
@@ -87,6 +87,20 @@ export async function me(req: Request, res: Response, next: NextFunction) {
   try {
     // req.user is set by requireAuth middleware
     return res.status(200).json({ user: (req as any).user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function guestSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = guestSessionSchema.safeParse(req.body || {});
+    const input = parsed.success ? parsed.data : undefined;
+    const user = await authService.createOrRestoreGuestSession(input);
+    const token = authService.signToken(user);
+
+    res.cookie('token', token, getCookieOptions());
+    return res.status(200).json({ user });
   } catch (err) {
     next(err);
   }

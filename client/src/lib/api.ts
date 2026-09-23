@@ -24,6 +24,8 @@ import type {
   DiscoveredStoreDto,
   DiscoveredStoresResponseDto,
   CustomerProductDto,
+  DiscoveredProductDetailDto,
+  DiscoveredProductsListResponseDto,
   CartDto,
   AddToCartDto,
   UpdateCartItemDto,
@@ -112,6 +114,12 @@ export const authApi = {
     apiFetch<{ user: AuthUser }>('/auth/register/vendor', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  guestSession: (data?: { firstName?: string; lastName?: string; phone?: string; email?: string }) =>
+    apiFetch<{ user: AuthUser }>('/auth/guest-session', {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
     }),
 
   logout: () =>
@@ -405,6 +413,34 @@ export const discoveryApi = {
       };
     }>(`/discovery/stores/${idOrSlug}/products${qs ? `?${qs}` : ''}`);
   },
+
+  getProduct: (idOrSlug: string) =>
+    apiFetch<DiscoveredProductDetailDto>(`/discovery/products/${idOrSlug}`),
+
+  getProducts: (params?: {
+    search?: string;
+    productCategoryId?: string;
+    storeId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    inStockOnly?: boolean;
+    sortBy?: 'price_asc' | 'price_desc' | 'name_asc' | 'newest';
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params?.search && params.search.trim()) sp.append('search', params.search.trim());
+    if (params?.productCategoryId) sp.append('productCategoryId', params.productCategoryId);
+    if (params?.storeId) sp.append('storeId', params.storeId);
+    if (params?.minPrice !== undefined) sp.append('minPrice', String(params.minPrice));
+    if (params?.maxPrice !== undefined) sp.append('maxPrice', String(params.maxPrice));
+    if (params?.inStockOnly) sp.append('inStockOnly', 'true');
+    if (params?.sortBy) sp.append('sortBy', params.sortBy);
+    if (params?.page) sp.append('page', String(params.page));
+    if (params?.pageSize) sp.append('pageSize', String(params.pageSize));
+    const qs = sp.toString();
+    return apiFetch<DiscoveredProductsListResponseDto>(`/discovery/products${qs ? `?${qs}` : ''}`);
+  },
 };
 
 // ─── Cart ─────────────────────────────────────────────────────────────────────
@@ -453,6 +489,12 @@ export const orderApi = {
 
   getCustomerOrder: (orderId: string) =>
     apiFetch<{ order: OrderDto }>(`/orders/${orderId}`),
+
+  lookupOrder: (orderId: string, phone: string) =>
+    apiFetch<{ order: OrderDto }>('/orders/lookup', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, phone }),
+    }),
 
   cancelOrder: (orderId: string) =>
     apiFetch<{ order: OrderDto }>(`/orders/${orderId}/cancel`, {
@@ -540,5 +582,103 @@ export const analyticsApi = {
   },
 };
 
+// ─── Media & Image Uploads ───────────────────────────────────────────────────
 
+export const uploadApi = {
+  uploadImage: async (file: File): Promise<{ url: string; filename: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          const res = await apiFetch<{ url: string; filename: string }>('/upload', {
+            method: 'POST',
+            body: JSON.stringify({
+              image: base64,
+              filename: file.name,
+            }),
+          });
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+  },
+};
+
+// ─── Admin Platform ───────────────────────────────────────────────────────────
+
+export const adminApi = {
+  getStats: () =>
+    apiFetch<{
+      stats: {
+        orders: { total: number; today: number; week: number; month: number };
+        users: { total: number; customers: number; vendors: number };
+        stores: { total: number; active: number };
+        revenue: { total: number; today: number; week: number; month: number };
+      };
+      recentOrders: Array<{
+        id: string;
+        status: string;
+        totalAmount: number;
+        createdAt: string;
+        customerName: string;
+        customerEmail: string;
+        storeName: string;
+      }>;
+      topStores: Array<{
+        storeId: string;
+        storeName: string;
+        orderCount: number;
+        revenue: number;
+      }>;
+    }>('/admin/stats'),
+
+  getUsers: (params?: { role?: string; search?: string; page?: number; pageSize?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.role) sp.append('role', params.role);
+    if (params?.search) sp.append('search', params.search);
+    if (params?.page) sp.append('page', String(params.page));
+    if (params?.pageSize) sp.append('pageSize', String(params.pageSize));
+    const qs = sp.toString();
+    return apiFetch<{
+      users: Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string | null;
+        role: string;
+        createdAt: string;
+        vendorProfile: {
+          id: string;
+          businessLegalName: string;
+          stores: Array<{ id: string; name: string; slug: string; isActive: boolean }>;
+        } | null;
+      }>;
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    }>(`/admin/users${qs ? `?${qs}` : ''}`);
+  },
+
+  updateUserRole: (userId: string, role: string) =>
+    apiFetch<{ user: { id: string; role: string } }>(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+
+  deleteUser: (userId: string) =>
+    apiFetch<{ success: boolean }>(`/admin/users/${userId}`, { method: 'DELETE' }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch<{ success: boolean; message: string }>('/admin/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+};
 

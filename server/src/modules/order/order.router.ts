@@ -6,6 +6,9 @@ import * as orderController from './order.controller';
 
 const router = Router();
 
+// Public Guest Order Tracking / Lookup
+router.post('/lookup', orderController.lookupGuestOrder);
+
 // Customer Orders are strictly customer-scoped
 router.use(requireAuth);
 router.use(requireRole(UserRole.CUSTOMER));

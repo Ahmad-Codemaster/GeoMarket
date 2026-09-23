@@ -8,6 +8,7 @@ router.post('/register/customer', authController.registerCustomer);
 router.post('/register/vendor', authController.registerVendor);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
+router.post('/guest-session', authController.guestSession);
 router.get('/me', requireAuth, authController.me);
 
 export default router;

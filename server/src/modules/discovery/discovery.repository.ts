@@ -213,3 +213,132 @@ export async function findStoreActiveProducts(
 
   return { products, total, page, pageSize };
 }
+
+export async function findDiscoveredProductById(idOrSlug: string) {
+  const product = await prisma.product.findFirst({
+    where: {
+      OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      isActive: true,
+      store: {
+        status: 'APPROVED',
+        isActive: true,
+      },
+    },
+    include: {
+      category: true,
+      store: {
+        include: {
+          storeCategory: true,
+          operatingHours: {
+            orderBy: { dayOfWeek: 'asc' },
+          },
+        },
+      },
+    },
+  });
+
+  if (!product) {
+    return null;
+  }
+
+  const relatedProducts = await prisma.product.findMany({
+    where: {
+      storeId: product.storeId,
+      id: { not: product.id },
+      isActive: true,
+    },
+    include: {
+      category: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 6,
+  });
+
+  return { product, relatedProducts };
+}
+
+export async function findDiscoveredProducts(params: {
+  search?: string;
+  productCategoryId?: string;
+  storeId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStockOnly?: boolean;
+  sortBy?: 'price_asc' | 'price_desc' | 'name_asc' | 'newest';
+  page?: number;
+  pageSize?: number;
+}) {
+  const page = params.page || 1;
+  const pageSize = params.pageSize || 12;
+  const skip = (page - 1) * pageSize;
+
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    store: {
+      status: 'APPROVED',
+      isActive: true,
+    },
+  };
+
+  if (params.productCategoryId) {
+    where.productCategoryId = params.productCategoryId;
+  }
+
+  if (params.storeId) {
+    where.storeId = params.storeId;
+  }
+
+  if (params.inStockOnly) {
+    where.stockQuantity = { gt: 0 };
+  }
+
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    where.price = {};
+    if (params.minPrice !== undefined) {
+      where.price.gte = params.minPrice;
+    }
+    if (params.maxPrice !== undefined) {
+      where.price.lte = params.maxPrice;
+    }
+  }
+
+  if (params.search && params.search.trim()) {
+    const term = params.search.trim();
+    where.OR = [
+      { name: { contains: term, mode: 'insensitive' } },
+      { description: { contains: term, mode: 'insensitive' } },
+    ];
+  }
+
+  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
+  if (params.sortBy === 'price_asc') {
+    orderBy = { price: 'asc' };
+  } else if (params.sortBy === 'price_desc') {
+    orderBy = { price: 'desc' };
+  } else if (params.sortBy === 'name_asc') {
+    orderBy = { name: 'asc' };
+  }
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        store: {
+          include: {
+            storeCategory: true,
+            operatingHours: {
+              orderBy: { dayOfWeek: 'asc' },
+            },
+          },
+        },
+      },
+      orderBy,
+      skip,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return { products, total, page, pageSize };
+}

@@ -101,24 +101,6 @@ export function StoreDetailPage() {
   };
 
   const handleAddToCart = async (product: { id: string; name: string; stockQuantity: number }) => {
-    if (!user) {
-      toast({
-        title: 'Sign in required',
-        description: 'Please log in to add items to your cart.',
-      });
-      navigate('/login');
-      return;
-    }
-
-    if (user.role !== UserRole.CUSTOMER) {
-      toast({
-        title: 'Customer account required',
-        description: 'Cart operations are only available to customer accounts.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     const qty = getQuantity(product.id);
 
     try {
@@ -402,16 +384,46 @@ export function StoreDetailPage() {
                 const isMaxInCart = inCartQuantity >= product.stockQuantity && product.stockQuantity > 0;
 
                 return (
-                  <Card key={product.id} className="flex flex-col justify-between overflow-hidden hover:border-primary/40 transition-colors">
-                    <CardHeader className="pb-2 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
-                        {product.category && (
-                          <Badge variant="outline" className="text-[10px] shrink-0">
-                            {product.category.name}
+                  <Card key={product.id} className="flex flex-col justify-between overflow-hidden rounded-2xl border-slate-200/80 hover:border-emerald-500/40 transition-all hover:shadow-md group">
+                    {/* Product Image Banner */}
+                    <Link to={`/products/${product.slug || product.id}`} className="block relative h-44 w-full overflow-hidden bg-slate-100/70 border-b border-slate-100">
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-full w-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-secondary/30 text-muted-foreground">
+                          <Package className="h-10 w-10 opacity-30" />
+                        </div>
+                      )}
+
+                      {product.category && (
+                        <Badge
+                          variant="secondary"
+                          className="absolute top-2.5 left-2.5 backdrop-blur-md bg-white/90 text-slate-800 text-[10px] shadow-xs border"
+                        >
+                          {product.category.name}
+                        </Badge>
+                      )}
+
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex items-center justify-center">
+                          <Badge variant="destructive" className="text-xs uppercase font-bold tracking-wider">
+                            Out of Stock
                           </Badge>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                    </Link>
+
+                    <CardHeader className="pb-2 space-y-1">
+                      <Link to={`/products/${product.slug || product.id}`}>
+                        <h3 className="font-bold text-sm line-clamp-1 group-hover:text-emerald-600 transition-colors text-slate-900">{product.name}</h3>
+                      </Link>
                       {product.description && (
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {product.description}
@@ -624,9 +636,9 @@ export function StoreDetailPage() {
             </div>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
               Your cart currently contains items from <strong>{conflictCurrentStore}</strong>.
-              GeoMarket enforces single-store fulfillment so your items can be dispatched by one courier.
+              Orders are delivered directly from a single local store for fast and reliable service.
               <br /><br />
-              Would you like to clear your current cart and start a new order from <strong>{store.storeName}</strong>?
+              Would you like to start a new basket from <strong>{store.storeName}</strong> instead?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0 mt-2">

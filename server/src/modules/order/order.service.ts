@@ -93,9 +93,53 @@ export function formatOrder(order: OrderWithDetails): OrderDto {
  */
 export async function checkout(
   userId: string,
-  addressId: string,
+  addressInputOrId:
+    | string
+    | {
+        addressId?: string;
+        inlineAddress?: {
+          recipientName: string;
+          recipientPhone: string;
+          addressLine: string;
+          city: string;
+          latitude: number;
+          longitude: number;
+        };
+      },
   referenceDate: Date = new Date()
 ): Promise<OrderDto> {
+  let addressId: string;
+  if (typeof addressInputOrId === 'string') {
+    addressId = addressInputOrId;
+  } else if (addressInputOrId.addressId) {
+    addressId = addressInputOrId.addressId;
+  } else if (addressInputOrId.inlineAddress) {
+    const inline = addressInputOrId.inlineAddress;
+    const existingDefault = await prisma.customerAddress.findFirst({
+      where: { userId, isDefault: true },
+    });
+    const createdAddress = await prisma.customerAddress.create({
+      data: {
+        userId,
+        addressLabel: 'Delivery Address',
+        recipientName: inline.recipientName,
+        recipientPhone: inline.recipientPhone,
+        addressLine: inline.addressLine,
+        city: inline.city,
+        latitude: inline.latitude,
+        longitude: inline.longitude,
+        isDefault: !existingDefault,
+      },
+    });
+    addressId = createdAddress.id;
+  } else {
+    throw new OrderServiceError(
+      'Delivery address is required',
+      OrderErrorCode.ADDRESS_NOT_FOUND,
+      400
+    );
+  }
+
   // 1. Authoritative Customer Address Validation
   const address = await prisma.customerAddress.findUnique({
     where: { id: addressId },
@@ -503,4 +547,35 @@ export async function getAdminOrderById(orderId: string): Promise<OrderDto> {
     throw new OrderServiceError('Order not found', OrderErrorCode.ORDER_NOT_FOUND, 404);
   }
   return formatOrder(order);
+}
+
+export async function lookupGuestOrder(orderId: string, phone: string): Promise<OrderDto> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: true,
+      addressSnapshot: true,
+      store: true,
+      user: true,
+    },
+  });
+
+  if (!order) {
+    throw new OrderServiceError('Order not found with provided ID and phone number', OrderErrorCode.ORDER_NOT_FOUND, 404);
+  }
+
+  const clean = (p?: string | null) => (p || '').replace(/[\s\-\(\)\+]/g, '');
+  const targetPhone = clean(phone);
+  const snapshotPhone = clean(order.addressSnapshot?.recipientPhone);
+  const userPhone = clean(order.user?.phone);
+
+  const phoneMatches =
+    (snapshotPhone && (snapshotPhone.endsWith(targetPhone) || targetPhone.endsWith(snapshotPhone))) ||
+    (userPhone && (userPhone.endsWith(targetPhone) || targetPhone.endsWith(userPhone)));
+
+  if (!phoneMatches) {
+    throw new OrderServiceError('Order not found with provided ID and phone number', OrderErrorCode.ORDER_NOT_FOUND, 404);
+  }
+
+  return formatOrder(order as any);
 }

@@ -10,4 +10,8 @@ router.get('/stores/:id', discoveryController.getDiscoveredStoreById);
 router.get('/stores/:id/products', discoveryController.getDiscoveredStoreProducts);
 router.get('/stores/:storeId/reviews', reviewController.getStoreReviews);
 
+// Customer cross-store product discovery and single product details
+router.get('/products', discoveryController.getDiscoveredProducts);
+router.get('/products/:id', discoveryController.getDiscoveredProductById);
+
 export default router;

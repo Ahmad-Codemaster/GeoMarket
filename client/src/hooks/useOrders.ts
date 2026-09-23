@@ -11,9 +11,13 @@ export function useCheckout() {
 
   return useMutation({
     mutationFn: (data: CheckoutInputDto) => checkoutApi.checkout(data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: CART_QUERY_KEY });
       qc.invalidateQueries({ queryKey: CUSTOMER_ORDERS_QUERY_KEY });
+      if (data?.order?.id) {
+        qc.setQueryData(['customer', 'order', data.order.id], data.order);
+        qc.setQueryData(['order', data.order.id], data);
+      }
     },
   });
 }

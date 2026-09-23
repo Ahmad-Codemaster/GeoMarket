@@ -3,8 +3,14 @@ import {
   DiscoveredStoreDto,
   DiscoveredStoresResponseDto,
   CustomerProductDto,
+  DiscoveredProductDetailDto,
+  DiscoveredProductsListResponseDto,
 } from '@geomarket/shared';
-import { StoreDiscoveryQueryInput, StoreProductsQueryInput } from './discovery.schemas';
+import {
+  StoreDiscoveryQueryInput,
+  StoreProductsQueryInput,
+  ProductsDiscoveryQueryInput,
+} from './discovery.schemas';
 
 const WEEKDAY_MAP: Record<string, number> = {
   Sun: 0,
@@ -201,6 +207,142 @@ export async function getDiscoveredStoreProducts(
 
   return {
     products: customerProducts,
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+}
+
+export async function getDiscoveredProductById(
+  idOrSlug: string,
+  referenceDate: Date = new Date(),
+): Promise<DiscoveredProductDetailDto> {
+  const result = await discoveryRepo.findDiscoveredProductById(idOrSlug);
+  if (!result || !result.product) {
+    throw new Error('PRODUCT_NOT_FOUND');
+  }
+
+  const { product, relatedProducts } = result;
+  const store = product.store;
+  const isOpen = isStoreCurrentlyOpen(store.operatingHours, store.timezone, referenceDate);
+
+  return {
+    id: product.id,
+    storeId: product.storeId,
+    productCategoryId: product.productCategoryId,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: Number(product.price),
+    stockQuantity: product.stockQuantity,
+    sku: product.sku,
+    imageUrl: product.imageUrl,
+    unit: product.unit,
+    category: product.category
+      ? {
+          id: product.category.id,
+          name: product.category.name,
+          slug: product.category.slug,
+          description: product.category.description,
+        }
+      : undefined,
+    store: {
+      id: store.id,
+      name: store.name,
+      slug: store.slug,
+      addressLine: store.addressLine,
+      city: store.city,
+      latitude: Number(store.latitude),
+      longitude: Number(store.longitude),
+      deliveryRadiusKm: Number(store.deliveryRadiusKm),
+      baseDeliveryFee: Number(store.baseDeliveryFee),
+      minOrderAmount: Number(store.minOrderAmount),
+      averageRating: Number(store.averageRating),
+      totalReviews: store.totalReviews,
+      isOpen,
+      isAcceptingOrders: store.isAcceptingOrders,
+    },
+    relatedProducts: relatedProducts.map((p) => ({
+      id: p.id,
+      storeId: p.storeId,
+      productCategoryId: p.productCategoryId,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: Number(p.price),
+      stockQuantity: p.stockQuantity,
+      sku: p.sku,
+      imageUrl: p.imageUrl,
+      unit: p.unit,
+      category: p.category
+        ? {
+            id: p.category.id,
+            name: p.category.name,
+            slug: p.category.slug,
+            description: p.category.description,
+          }
+        : undefined,
+    })),
+  };
+}
+
+export async function searchDiscoveredProducts(
+  input: ProductsDiscoveryQueryInput,
+  referenceDate: Date = new Date(),
+): Promise<DiscoveredProductsListResponseDto> {
+  const { products, total, page, pageSize } = await discoveryRepo.findDiscoveredProducts(input);
+  const totalPages = Math.ceil(total / pageSize);
+
+  const mappedProducts = products.map((p) => {
+    const store = p.store;
+    const isOpen = isStoreCurrentlyOpen(store.operatingHours, store.timezone, referenceDate);
+
+    return {
+      id: p.id,
+      storeId: p.storeId,
+      productCategoryId: p.productCategoryId,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: Number(p.price),
+      stockQuantity: p.stockQuantity,
+      sku: p.sku,
+      imageUrl: p.imageUrl,
+      unit: p.unit,
+      category: p.category
+        ? {
+            id: p.category.id,
+            name: p.category.name,
+            slug: p.category.slug,
+            description: p.category.description,
+          }
+        : undefined,
+      store: {
+        id: store.id,
+        name: store.name,
+        slug: store.slug,
+        addressLine: store.addressLine,
+        city: store.city,
+        latitude: Number(store.latitude),
+        longitude: Number(store.longitude),
+        deliveryRadiusKm: Number(store.deliveryRadiusKm),
+        baseDeliveryFee: Number(store.baseDeliveryFee),
+        minOrderAmount: Number(store.minOrderAmount),
+        averageRating: Number(store.averageRating),
+        totalReviews: store.totalReviews,
+        isOpen,
+        isAcceptingOrders: store.isAcceptingOrders,
+      },
+    };
+  });
+
+  return {
+    products: mappedProducts,
     pagination: {
       page,
       pageSize,

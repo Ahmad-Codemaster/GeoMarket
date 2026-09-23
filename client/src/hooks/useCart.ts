@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { cartApi } from '../lib/api';
-import { useCurrentUser } from './useAuth';
+import { cartApi, authApi } from '../lib/api';
+import { useCurrentUser, AUTH_QUERY_KEY } from './useAuth';
 import { UserRole, AddToCartDto } from '@geomarket/shared';
 
 export const CART_QUERY_KEY = ['cart'] as const;
@@ -11,15 +11,21 @@ export const CART_QUERY_KEY = ['cart'] as const;
  */
 export function useCart() {
   const { data: user } = useCurrentUser();
-  const isCustomer = user?.role === UserRole.CUSTOMER;
 
   return useQuery({
     queryKey: CART_QUERY_KEY,
     queryFn: async () => {
-      const res = await cartApi.getCart();
-      return res.cart;
+      try {
+        const res = await cartApi.getCart();
+        return res.cart;
+      } catch (err: any) {
+        if (err?.status === 401) {
+          return null;
+        }
+        throw err;
+      }
     },
-    enabled: !!user && isCustomer,
+    enabled: user === undefined || user?.role === UserRole.CUSTOMER,
     staleTime: 30 * 1000,
   });
 }
@@ -31,7 +37,18 @@ export function useAddToCart() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: AddToCartDto) => cartApi.addToCart(data),
+    mutationFn: async (data: AddToCartDto) => {
+      const currentUser = qc.getQueryData(AUTH_QUERY_KEY);
+      if (!currentUser) {
+        try {
+          const guestRes = await authApi.guestSession();
+          qc.setQueryData(AUTH_QUERY_KEY, guestRes.user);
+        } catch (e) {
+          console.error('Guest session init error:', e);
+        }
+      }
+      return cartApi.addToCart(data);
+    },
     onSuccess: (res) => {
       qc.setQueryData(CART_QUERY_KEY, res.cart);
     },

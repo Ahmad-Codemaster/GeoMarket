@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   MapPin,
@@ -16,6 +16,9 @@ import {
   Edit3,
   Trash2,
   Send,
+  Printer,
+  Sparkles,
+  Phone,
 } from 'lucide-react';
 import { PageContainer, PageHeader } from '../../components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -38,7 +41,7 @@ import { useToast } from '../../hooks/useToast';
 import { OrderStatus, PaymentStatus } from '@geomarket/shared';
 import { getStatusBadge } from './CustomerOrdersPage';
 
-const FSM_STEPS: OrderStatus[] = [
+const ORDER_STEPS: OrderStatus[] = [
   OrderStatus.PLACED,
   OrderStatus.CONFIRMED,
   OrderStatus.PREPARING,
@@ -66,6 +69,26 @@ export function OrderDetailPage() {
   const cancelMutation = useCancelCustomerOrder();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
+  // Review hooks & state (Delivered orders only)
+  const isDelivered = order?.status === OrderStatus.DELIVERED;
+  const { data: review, isLoading: reviewLoading } = useOrderReview(order?.id || '', isDelivered);
+  const createReviewMutation = useCreateReview();
+  const updateReviewMutation = useUpdateReview();
+  const deleteReviewMutation = useDeleteReview();
+
+  // Create review form state
+  const [rating, setRating] = useState<number>(0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  // Edit review state
+  const [isEditingReview, setIsEditingReview] = useState<boolean>(false);
+  const [editRating, setEditRating] = useState<number>(5);
+  const [editHoverRating, setEditHoverRating] = useState<number>(0);
+  const [editComment, setEditComment] = useState<string>('');
+  const [deleteReviewDialogOpen, setDeleteReviewDialogOpen] = useState<boolean>(false);
+
   if (isLoading) {
     return (
       <PageContainer width="wide">
@@ -90,18 +113,23 @@ export function OrderDetailPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Order Not Found</AlertTitle>
           <AlertDescription className="text-xs">
-            The requested order could not be found or you do not have permission to view it.
+            The requested order could not be found or you may need to look it up using your order ID and phone number.
           </AlertDescription>
         </Alert>
-        <Button className="mt-4" onClick={() => navigate('/orders')}>
-          Back to My Orders
-        </Button>
+        <div className="flex gap-3 mt-4">
+          <Button onClick={() => navigate('/orders/track')}>
+            Track Order with Phone
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/orders')}>
+            Back to Orders
+          </Button>
+        </div>
       </PageContainer>
     );
   }
 
   const isCancelled = order.status === OrderStatus.CANCELLED;
-  const currentStepIndex = FSM_STEPS.indexOf(order.status);
+  const currentStepIndex = ORDER_STEPS.indexOf(order.status);
   const isCancellable =
     order.status === OrderStatus.PLACED || order.status === OrderStatus.CONFIRMED;
 
@@ -111,7 +139,7 @@ export function OrderDetailPage() {
       setCancelDialogOpen(false);
       toast({
         title: 'Order Cancelled',
-        description: 'Your order has been cancelled and stock has been restored.',
+        description: 'Your order has been cancelled successfully.',
       });
     } catch (err: any) {
       toast({
@@ -121,26 +149,6 @@ export function OrderDetailPage() {
       });
     }
   };
-
-  // Review hooks & state (Delivered orders only)
-  const isDelivered = order.status === OrderStatus.DELIVERED;
-  const { data: review, isLoading: reviewLoading } = useOrderReview(order.id, isDelivered);
-  const createReviewMutation = useCreateReview();
-  const updateReviewMutation = useUpdateReview();
-  const deleteReviewMutation = useDeleteReview();
-
-  // Create review form state
-  const [rating, setRating] = useState<number>(0);
-  const [hoverRating, setHoverRating] = useState<number>(0);
-  const [comment, setComment] = useState<string>('');
-  const [reviewError, setReviewError] = useState<string | null>(null);
-
-  // Edit review state
-  const [isEditingReview, setIsEditingReview] = useState<boolean>(false);
-  const [editRating, setEditRating] = useState<number>(5);
-  const [editHoverRating, setEditHoverRating] = useState<number>(0);
-  const [editComment, setEditComment] = useState<string>('');
-  const [deleteReviewDialogOpen, setDeleteReviewDialogOpen] = useState<boolean>(false);
 
   const handleSubmitReview = async () => {
     if (rating < 1 || rating > 5) {
@@ -223,7 +231,7 @@ export function OrderDetailPage() {
 
   return (
     <PageContainer width="wide">
-      <div className="mb-4">
+      <div className="mb-4 no-print flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
@@ -233,6 +241,17 @@ export function OrderDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Orders
         </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            className="gap-1.5 text-xs shadow-sm hover-lift"
+          >
+            <Printer className="h-4 w-4 text-primary" />
+            Print Invoice
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b">
@@ -248,44 +267,46 @@ export function OrderDetailPage() {
           </p>
         </div>
 
-        {isCancellable && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive self-start sm:self-auto"
-            onClick={() => setCancelDialogOpen(true)}
-          >
-            Cancel Order
-          </Button>
-        )}
+        <div className="flex items-center gap-2 self-start sm:self-auto no-print">
+          {isCancellable && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setCancelDialogOpen(true)}
+            >
+              Cancel Order
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Stepped FSM Progress Tracker */}
+      {/* Progress Tracker */}
       <Card className="mt-6">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Order Fulfillment Lifecycle</CardTitle>
+          <CardTitle className="text-sm">Order Progress & Status</CardTitle>
         </CardHeader>
         <CardContent>
           {isCancelled ? (
-            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-3">
+            <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center gap-3">
               <XCircle className="h-5 w-5 text-destructive shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-destructive">Order Cancelled</p>
                 <p className="text-xs text-muted-foreground">
-                  This order was cancelled. Reserved quantities have been returned to the store stock.
+                  This order was cancelled.
                 </p>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-              {FSM_STEPS.map((step, idx) => {
+              {ORDER_STEPS.map((step, idx) => {
                 const isCompleted = idx <= currentStepIndex;
                 const isCurrent = idx === currentStepIndex;
 
                 return (
                   <div
                     key={step}
-                    className={`flex flex-col items-center text-center p-2.5 rounded-lg border transition-all ${
+                    className={`flex flex-col items-center text-center p-2.5 rounded-xl border transition-all ${
                       isCurrent
                         ? 'border-primary bg-primary/10 shadow-sm font-semibold'
                         : isCompleted
@@ -312,17 +333,17 @@ export function OrderDetailPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
-        {/* Left Column: Delivery Snapshot & Items */}
+        {/* Left Column: Delivery Info & Items */}
         <div className="lg:col-span-2 space-y-6">
           {/* Ordered Items Table */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" />
-                Ordered Items Snapshot ({order.items?.length || 0})
+                Ordered Items ({order.items?.length || 0})
               </CardTitle>
               <CardDescription className="text-xs">
-                Historical item prices and names preserved at time of checkout
+                Items fulfilled by {order.store?.name || 'Local Store'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -344,15 +365,15 @@ export function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Immutable Delivery Address Snapshot */}
+          {/* Delivery Address */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary" />
-                Delivery Address Snapshot
+                Delivery Address
               </CardTitle>
               <CardDescription className="text-xs">
-                Authoritative delivery location recorded at checkout
+                Delivering to your location
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -367,13 +388,9 @@ export function OrderDetailPage() {
                   <p className="text-xs text-foreground mt-1">
                     {order.addressSnapshot.address}, {order.addressSnapshot.city}
                   </p>
-                  <p className="text-[10px] text-muted-foreground pt-1">
-                    GPS: ({Number(order.addressSnapshot.latitude).toFixed(6)},{' '}
-                    {Number(order.addressSnapshot.longitude).toFixed(6)})
-                  </p>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">No address snapshot available.</p>
+                <p className="text-xs text-muted-foreground">Delivery address recorded.</p>
               )}
             </CardContent>
           </Card>
@@ -385,7 +402,7 @@ export function OrderDetailPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                    {review ? 'Your Store Review' : 'Rate & Review Your Order'}
+                    {review ? 'Your Store Review' : 'Rate & Review Your Experience'}
                   </CardTitle>
                   {review && !isEditingReview && (
                     <div className="flex items-center gap-1">
@@ -437,7 +454,7 @@ export function OrderDetailPage() {
                       <span className="text-sm font-semibold">{review.rating} out of 5</span>
                     </div>
                     {review.comment ? (
-                      <p className="text-sm text-foreground/90 bg-muted/40 p-3 rounded-md border border-border/50 whitespace-pre-wrap">
+                      <p className="text-sm text-foreground/90 bg-muted/40 p-3 rounded-lg border border-border/50 whitespace-pre-wrap">
                         {review.comment}
                       </p>
                     ) : (
@@ -546,7 +563,7 @@ export function OrderDetailPage() {
                         rows={3}
                         value={comment}
                         onChange={(e) => setComment(e.target.value.slice(0, 1000))}
-                        placeholder="How was the food, freshness, delivery time, and overall service?"
+                        placeholder="How was the quality, freshness, and delivery service?"
                         className="resize-none text-xs"
                       />
                     </div>
@@ -559,7 +576,7 @@ export function OrderDetailPage() {
                         className="gap-1.5"
                       >
                         <Send className="h-3.5 w-3.5" />
-                        {createReviewMutation.isPending ? 'Submitting…' : 'Leave Review'}
+                        {createReviewMutation.isPending ? 'Submitting…' : 'Submit Review'}
                       </Button>
                     </div>
                   </div>
@@ -609,7 +626,7 @@ export function OrderDetailPage() {
                     variant="outline"
                     className={
                       order.paymentStatus === PaymentStatus.PAID
-                        ? 'bg-green-100 text-green-800 border-green-200'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                         : order.paymentStatus === PaymentStatus.CANCELLED
                         ? 'bg-red-100 text-red-800 border-red-200'
                         : 'bg-amber-100 text-amber-800 border-amber-200'
@@ -647,7 +664,7 @@ export function OrderDetailPage() {
           <DialogHeader>
             <DialogTitle>Cancel Order #{order.id.slice(0, 8)}?</DialogTitle>
             <DialogDescription className="text-xs">
-              Are you sure you want to cancel this order? This action cannot be undone. Ordered items will be returned to store stock.
+              Are you sure you want to cancel this order? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

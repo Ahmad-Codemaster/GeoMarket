@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin,
@@ -13,6 +13,10 @@ import {
   ShieldCheck,
   Truck,
   ArrowLeft,
+  Navigation,
+  User,
+  Phone,
+  Home,
 } from 'lucide-react';
 import { PageContainer, PageHeader } from '../../components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -20,7 +24,10 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Skeleton } from '../../components/ui/skeleton';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import { EmptyState } from '../../components/common/EmptyState';
+import { useCurrentUser, useGuestSession } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useAddresses } from '../../hooks/useAddresses';
 import { useCheckout } from '../../hooks/useOrders';
@@ -30,22 +37,91 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const { data: currentUser } = useCurrentUser();
+  const guestSessionMutation = useGuestSession();
   const { data: cart, isLoading: cartLoading, isError: cartError } = useCart();
   const { data: addresses, isLoading: addressesLoading } = useAddresses();
   const checkoutMutation = useCheckout();
 
+  // Mode: 'saved' (if user has addresses) or 'inline' (guest / new address)
+  const isGuestUser = !currentUser || currentUser.isGuest;
+  const hasSavedAddresses = Boolean(addresses && addresses.length > 0);
+
+  const [deliveryMode, setDeliveryMode] = useState<'saved' | 'inline'>(
+    hasSavedAddresses && !isGuestUser ? 'saved' : 'inline'
+  );
+
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
+  // Guest / Inline delivery form state
+  const [fullName, setFullName] = useState(
+    currentUser ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : ''
+  );
+  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [addressLine, setAddressLine] = useState('');
+  const [city, setCity] = useState('Islamabad');
+  const [latitude, setLatitude] = useState<number>(33.6844);
+  const [longitude, setLongitude] = useState<number>(73.0479);
+  const [isLocating, setIsLocating] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Default to the default address or the first address
+  // Sync mode when addresses load
   useEffect(() => {
-    if (addresses && addresses.length > 0 && !selectedAddressId) {
+    if (addresses && addresses.length > 0 && !isGuestUser) {
+      setDeliveryMode('saved');
       const defaultAddr = addresses.find((a) => a.isDefault);
       setSelectedAddressId(defaultAddr ? defaultAddr.id : addresses[0].id);
+    } else {
+      setDeliveryMode('inline');
     }
-  }, [addresses, selectedAddressId]);
+  }, [addresses, isGuestUser]);
 
-  if (cartLoading || addressesLoading) {
+  useEffect(() => {
+    if (currentUser) {
+      if (!fullName) {
+        setFullName(`${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim());
+      }
+      if (!phone && currentUser.phone) {
+        setPhone(currentUser.phone);
+      }
+    }
+  }, [currentUser]);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: 'Location Unavailable',
+        description: 'Geolocation is not supported by your browser.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(pos.coords.latitude);
+        setLongitude(pos.coords.longitude);
+        setIsLocating(false);
+        toast({
+          title: 'Location Updated',
+          description: 'Your current GPS coordinates have been set.',
+        });
+      },
+      (err) => {
+        setIsLocating(false);
+        toast({
+          title: 'Location Error',
+          description: err.message || 'Could not fetch your current location.',
+          variant: 'destructive',
+        });
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  if (cartLoading || (addressesLoading && !isGuestUser)) {
     return (
       <PageContainer width="wide">
         <PageHeader title="Checkout" description="Review order details and confirm delivery" />
@@ -90,11 +166,6 @@ export function CheckoutPage() {
   const totalAmount = Math.round((subtotal + deliveryFee) * 100) / 100;
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddressId) {
-      setErrorMessage('Please select or add a delivery address.');
-      return;
-    }
-
     if (!cart.isValid) {
       setErrorMessage('Some items in your cart are currently out of stock or unavailable. Please review your cart.');
       return;
@@ -110,16 +181,68 @@ export function CheckoutPage() {
     setErrorMessage(null);
 
     try {
-      const res = await checkoutMutation.mutateAsync({
-        addressId: selectedAddressId,
-      });
+      let checkoutPayload: any = {};
+
+      if (deliveryMode === 'saved') {
+        if (!selectedAddressId) {
+          setErrorMessage('Please select a saved delivery address or switch to new address.');
+          return;
+        }
+        checkoutPayload = { addressId: selectedAddressId };
+      } else {
+        // Validate guest/inline fields
+        const trimmedName = fullName.trim();
+        const trimmedPhone = phone.trim();
+        const trimmedAddress = addressLine.trim();
+        const trimmedCity = city.trim() || 'Islamabad';
+
+        if (!trimmedName || trimmedName.length < 2) {
+          setErrorMessage('Please enter your full recipient name (at least 2 characters).');
+          return;
+        }
+        if (!trimmedPhone || trimmedPhone.length < 7) {
+          setErrorMessage('Please enter a valid contact phone number (at least 7 digits).');
+          return;
+        }
+        if (!trimmedAddress || trimmedAddress.length < 5) {
+          setErrorMessage('Please enter your complete street / delivery address (at least 5 characters).');
+          return;
+        }
+        if (!trimmedCity || trimmedCity.length < 2) {
+          setErrorMessage('Please enter a valid city name.');
+          return;
+        }
+
+        // If not logged in at all, ensure guest session exists
+        if (!currentUser) {
+          await guestSessionMutation.mutateAsync({
+            firstName: trimmedName.split(' ')[0] || 'Guest',
+            lastName: trimmedName.split(' ').slice(1).join(' ') || 'Customer',
+            phone: trimmedPhone,
+          });
+        }
+
+        checkoutPayload = {
+          inlineAddress: {
+            recipientName: trimmedName,
+            recipientPhone: trimmedPhone,
+            addressLine: trimmedAddress,
+            city: trimmedCity,
+            latitude: latitude || 33.6844,
+            longitude: longitude || 73.0479,
+          },
+        };
+      }
+
+      const res = await checkoutMutation.mutateAsync(checkoutPayload);
 
       toast({
         title: 'Order Placed Successfully!',
         description: `Order #${res.order.id.slice(0, 8)} has been confirmed with Cash on Delivery.`,
       });
 
-      navigate(`/orders/${res.order.id}`);
+      // Navigate to order celebration & invoice page
+      navigate(`/orders/${res.order.id}/success`);
     } catch (err: any) {
       const msg = err.message || 'Failed to place order. Please check store status and stock.';
       setErrorMessage(msg);
@@ -146,8 +269,8 @@ export function CheckoutPage() {
       </div>
 
       <PageHeader
-        title="Checkout & Confirmation"
-        description="Review your delivery address, store items, and confirm Cash on Delivery"
+        title="Checkout & Delivery"
+        description="Review your delivery details, items, and confirm Cash on Delivery"
       />
 
       {errorMessage && (
@@ -161,74 +284,173 @@ export function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
         {/* Left 2 columns: Delivery Address & Ordered Items */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Step 1: Delivery Address Selection */}
+          {/* Step 1: Delivery Address */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
-                  1. Delivery Address
+                  1. Delivery Destination
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Select the delivery destination for this order
+                  Where should the store rider deliver your order?
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                onClick={() => navigate('/addresses')}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Manage Addresses
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {!addresses || addresses.length === 0 ? (
-                <div className="p-4 border rounded-lg bg-muted/30 text-center space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    You haven't added any saved addresses yet.
-                  </p>
-                  <Button size="sm" onClick={() => navigate('/addresses')}>
-                    Add Delivery Address
+              {hasSavedAddresses && !isGuestUser && (
+                <div className="flex gap-2">
+                  <Button
+                    variant={deliveryMode === 'saved' ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setDeliveryMode('saved')}
+                  >
+                    Saved Addresses
+                  </Button>
+                  <Button
+                    variant={deliveryMode === 'inline' ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setDeliveryMode('inline')}
+                  >
+                    New Address
                   </Button>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {addresses.map((addr) => {
-                    const isSelected = selectedAddressId === addr.id;
-                    return (
-                      <div
-                        key={addr.id}
-                        onClick={() => {
-                          setSelectedAddressId(addr.id);
-                          setErrorMessage(null);
-                        }}
-                        className={`cursor-pointer rounded-lg p-3.5 border text-left transition-all ${
-                          isSelected
-                            ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
-                            : 'hover:border-muted-foreground/30'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-sm capitalize">
-                            {addr.addressLabel}
-                          </span>
-                          {addr.isDefault && (
-                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                              Default
-                            </Badge>
-                          )}
+              )}
+            </CardHeader>
+            <CardContent>
+              {deliveryMode === 'saved' && hasSavedAddresses ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {addresses?.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => {
+                            setSelectedAddressId(addr.id);
+                            setErrorMessage(null);
+                          }}
+                          className={`cursor-pointer rounded-xl p-3.5 border text-left transition-all ${
+                            isSelected
+                              ? 'border-primary ring-2 ring-primary/20 bg-primary/5 shadow-sm'
+                              : 'hover:border-muted-foreground/30'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-sm capitalize">
+                              {addr.addressLabel}
+                            </span>
+                            {addr.isDefault && (
+                              <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                                Default
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-foreground font-medium">
+                            {addr.recipientName || 'Recipient'} ({addr.recipientPhone || 'No phone'})
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {addr.addressLine}, {addr.city}
+                          </p>
                         </div>
-                        <p className="text-xs text-foreground font-medium">
-                          {addr.recipientName || 'You'} ({addr.recipientPhone || 'No phone'})
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {addr.addressLine}, {addr.city}
-                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Inline / Guest Delivery Form */
+                <div className="space-y-4 pt-1">
+                  {isGuestUser && (
+                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        Ordering as a <strong>Guest</strong>. No password needed!
+                      </span>
+                      <Link to="/login" className="text-primary font-semibold hover:underline">
+                        Log in for saved addresses
+                      </Link>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="fullName" className="text-xs font-semibold flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        Full Name *
+                      </Label>
+                      <Input
+                        id="fullName"
+                        placeholder="e.g. Sara Ahmed"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-xs font-semibold flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        Contact Phone *
+                      </Label>
+                      <Input
+                        id="phone"
+                        placeholder="e.g. 03001234567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="addressLine" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Home className="h-3.5 w-3.5 text-muted-foreground" />
+                      Street Address / House No. *
+                    </Label>
+                    <Input
+                      id="addressLine"
+                      placeholder="e.g. House 42, Street 7, Sector F-7/2"
+                      value={addressLine}
+                      onChange={(e) => setAddressLine(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="city" className="text-xs font-semibold">
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold flex items-center justify-between">
+                        <span>Delivery Location Coords</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1.5 text-[11px] gap-1 text-primary hover:text-primary"
+                          onClick={handleUseCurrentLocation}
+                          disabled={isLocating}
+                        >
+                          {isLocating ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Navigation className="h-3 w-3" />
+                          )}
+                          {isLocating ? 'Detecting...' : 'Use GPS'}
+                        </Button>
+                      </Label>
+                      <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border flex items-center justify-between">
+                        <span>Lat: {latitude.toFixed(4)}, Lng: {longitude.toFixed(4)}</span>
+                        <Badge variant="outline" className="text-[10px]">Auto-Targeted</Badge>
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -248,7 +470,7 @@ export function CheckoutPage() {
                   </CardDescription>
                 </div>
                 <Badge variant="outline" className="text-xs">
-                  Single-Store Order
+                  Direct Store Order
                 </Badge>
               </div>
             </CardHeader>
@@ -293,12 +515,12 @@ export function CheckoutPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3 p-3.5 border rounded-lg bg-muted/20 border-primary/40">
+              <div className="flex items-center gap-3 p-3.5 border rounded-xl bg-primary/5 border-primary/30">
                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                 <div>
                   <p className="text-sm font-semibold">Cash on Delivery (COD)</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pay the total amount in cash directly to the dispatch rider upon delivery.
+                    Pay safely in cash directly to the delivery rider upon receiving your package.
                   </p>
                 </div>
               </div>
@@ -338,8 +560,8 @@ export function CheckoutPage() {
               </div>
 
               {minOrderShortfall > 0 && (
-                <Alert variant="warning" className="py-2 text-xs">
-                  <AlertCircle className="h-4 w-4" />
+                <Alert className="py-2 text-xs border-amber-300 bg-amber-50 text-amber-900">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
                   <AlertDescription>
                     Add <strong>Rs. {minOrderShortfall.toFixed(2)}</strong> more to reach minimum order.
                   </AlertDescription>
@@ -366,10 +588,11 @@ export function CheckoutPage() {
               </div>
 
               <Button
-                className="w-full font-semibold gap-2"
+                className="w-full font-semibold gap-2 shadow-md hover-lift"
                 size="lg"
                 disabled={
-                  !selectedAddressId ||
+                  (deliveryMode === 'saved' && !selectedAddressId) ||
+                  (deliveryMode === 'inline' && (!fullName.trim() || !phone.trim() || !addressLine.trim())) ||
                   !cart.isValid ||
                   minOrderShortfall > 0 ||
                   checkoutMutation.isPending
@@ -389,9 +612,9 @@ export function CheckoutPage() {
                 )}
               </Button>
 
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                <span>Authoritative real-time stock & PostGIS verification</span>
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground text-center">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>Fast & secure local order fulfillment</span>
               </div>
             </CardContent>
           </Card>

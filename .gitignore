@@ -4,3 +4,7 @@ dist/
 *.log
 .DS_Store
 prisma/migrations/
+*.exe
+cloudflared*
+server/public/uploads/*
+!server/public/uploads/.gitkeep

@@ -16,14 +16,15 @@ const STORE_LOCATION = {
 };
 
 async function cleanDatabase() {
+  await prisma.review.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.orderAddressSnapshot.deleteMany();
   await prisma.order.deleteMany();
   await prisma.cartItem.deleteMany();
   await prisma.cart.deleteMany();
   await prisma.customerAddress.deleteMany();
-  await prisma.storeOperatingHours.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.storeOperatingHours.deleteMany();
   await prisma.store.deleteMany();
   await prisma.storeCategory.deleteMany();
   await prisma.productCategory.deleteMany();
@@ -293,6 +294,35 @@ describe('Phase 7: Checkout, COD, and Order Fulfillment Lifecycle', () => {
         .set('Cookie', customerA.cookie);
       expect(cartRes.body.cart.items).toHaveLength(0);
       expect(cartRes.body.cart.storeId).toBeNull();
+    });
+
+    it('executes successful atomic checkout with inline address payload for new/guest address', async () => {
+      await request(app)
+        .post('/api/v1/cart/items')
+        .set('Cookie', customerA.cookie)
+        .send({ productId: productA1.id, quantity: 1 });
+
+      const res = await request(app)
+        .post('/api/v1/checkout')
+        .set('Cookie', customerA.cookie)
+        .send({
+          inlineAddress: {
+            recipientName: 'Sara Ahmad',
+            recipientPhone: '+923005554433',
+            addressLine: 'House 42, Street 7, Gulberg III',
+            city: 'Lahore',
+            latitude: STORE_LOCATION.latitude + 0.01,
+            longitude: STORE_LOCATION.longitude + 0.01,
+          },
+        });
+
+      expect(res.status).toBe(201);
+      const order = res.body.order;
+      expect(order).toBeDefined();
+      expect(order.status).toBe(OrderStatus.PLACED);
+      expect(order.addressSnapshot.recipientName).toBe('Sara Ahmad');
+      expect(order.addressSnapshot.recipientPhone).toBe('+923005554433');
+      expect(order.addressSnapshot.address).toBe('House 42, Street 7, Gulberg III');
     });
   });
 

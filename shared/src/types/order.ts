@@ -80,7 +80,20 @@ export interface OrderDto {
 }
 
 export interface CheckoutInputDto {
-  addressId: string;
+  addressId?: string;
+  inlineAddress?: {
+    recipientName: string;
+    recipientPhone: string;
+    addressLine: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface GuestOrderLookupInputDto {
+  orderId: string;
+  phone: string;
 }
 
 export interface UpdateOrderStatusDto {

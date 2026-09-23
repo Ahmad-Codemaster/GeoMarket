@@ -20,5 +20,6 @@ export interface AuthUser {
   lastName: string;
   phone: string;
   isActive: boolean;
+  isGuest?: boolean;
   vendorProfileId: string | null;
 }

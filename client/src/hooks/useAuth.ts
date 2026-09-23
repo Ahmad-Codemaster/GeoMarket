@@ -12,11 +12,18 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: AUTH_QUERY_KEY,
     queryFn: async () => {
-      const res = await authApi.me();
-      return res.user;
+      try {
+        const res = await authApi.me();
+        return res.user;
+      } catch (err: any) {
+        if (err?.status === 401) {
+          return null;
+        }
+        throw err;
+      }
     },
     retry: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 }
 
@@ -27,6 +34,9 @@ export function useLogin() {
     mutationFn: (data: LoginInput) => authApi.login(data),
     onSuccess: ({ user }) => {
       qc.setQueryData(AUTH_QUERY_KEY, user);
+      qc.invalidateQueries({ queryKey: ['cart'] });
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['customer'] });
     },
   });
 }
@@ -38,6 +48,9 @@ export function useRegisterCustomer() {
     mutationFn: (data: RegisterCustomerInput) => authApi.registerCustomer(data),
     onSuccess: ({ user }) => {
       qc.setQueryData(AUTH_QUERY_KEY, user);
+      qc.invalidateQueries({ queryKey: ['cart'] });
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['customer'] });
     },
   });
 }
@@ -49,6 +62,9 @@ export function useRegisterVendor() {
     mutationFn: (data: RegisterVendorInput) => authApi.registerVendor(data),
     onSuccess: ({ user }) => {
       qc.setQueryData(AUTH_QUERY_KEY, user);
+      qc.invalidateQueries({ queryKey: ['cart'] });
+      qc.invalidateQueries({ queryKey: ['addresses'] });
+      qc.invalidateQueries({ queryKey: ['vendor'] });
     },
   });
 }
@@ -59,8 +75,21 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
-      qc.setQueryData(AUTH_QUERY_KEY, undefined);
+      qc.setQueryData(AUTH_QUERY_KEY, null);
       qc.clear(); // Clear all cached server state on logout
+    },
+  });
+}
+
+/** Guest session mutation — sets guest auth user in cache. */
+export function useGuestSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data?: { firstName?: string; lastName?: string; phone?: string; email?: string }) =>
+      authApi.guestSession(data),
+    onSuccess: ({ user }) => {
+      qc.setQueryData(AUTH_QUERY_KEY, user);
+      qc.invalidateQueries({ queryKey: ['cart'] });
     },
   });
 }

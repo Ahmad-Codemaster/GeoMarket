@@ -32,6 +32,12 @@ const SAMPLE_PRODUCT = {
 };
 
 async function cleanDatabase() {
+  await prisma.review.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.orderAddressSnapshot.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.cartItem.deleteMany();
+  await prisma.cart.deleteMany();
   await prisma.customerAddress.deleteMany();
   await prisma.storeOperatingHours.deleteMany();
   await prisma.product.deleteMany();

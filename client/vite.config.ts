@@ -10,9 +10,15 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // Listen on all network addresses (0.0.0.0) for tunnels and local network
     port: 5173,
+    allowedHosts: true, // Allow all tunnel domains (loca.lt, trycloudflare.com, ngrok, etc.)
     proxy: {
       '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:3001',
         changeOrigin: true,
       },

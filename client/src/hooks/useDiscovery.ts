@@ -7,6 +7,8 @@ export const DISCOVERY_QUERY_KEYS = {
     ['discovery', 'store', idOrSlug, coords] as const,
   products: (idOrSlug: string, params?: StoreProductsParams) =>
     ['discovery', 'store-products', idOrSlug, params] as const,
+  productDetail: (idOrSlug: string) => ['discovery', 'product', idOrSlug] as const,
+  allProducts: (params?: any) => ['discovery', 'all-products', params] as const,
 };
 
 export function useDiscoveredStores(
@@ -50,5 +52,36 @@ export function useStoreProducts(
     },
     enabled: Boolean(idOrSlug),
     staleTime: 60 * 1000,
+  });
+}
+
+export function useDiscoveredProduct(idOrSlug: string) {
+  return useQuery({
+    queryKey: DISCOVERY_QUERY_KEYS.productDetail(idOrSlug),
+    queryFn: async () => {
+      return discoveryApi.getProduct(idOrSlug);
+    },
+    enabled: Boolean(idOrSlug),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useDiscoveredProducts(params?: {
+  search?: string;
+  productCategoryId?: string;
+  storeId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStockOnly?: boolean;
+  sortBy?: 'price_asc' | 'price_desc' | 'name_asc' | 'newest';
+  page?: number;
+  pageSize?: number;
+}) {
+  return useQuery({
+    queryKey: DISCOVERY_QUERY_KEYS.allProducts(params),
+    queryFn: async () => {
+      return discoveryApi.getProducts(params);
+    },
+    staleTime: 30 * 1000,
   });
 }

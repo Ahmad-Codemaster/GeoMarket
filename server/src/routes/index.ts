@@ -15,6 +15,8 @@ import adminOrderRouter from '../modules/order/adminOrder.router';
 import reviewRouter from '../modules/review/review.router';
 import vendorReviewRouter from '../modules/review/vendorReview.router';
 import vendorAnalyticsRouter from '../modules/analytics/vendorAnalytics.router';
+import uploadRouter from '../modules/upload/upload.router';
+import adminRouter from '../modules/admin/admin.router';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -54,5 +56,7 @@ router.use('/admin/orders', adminOrderRouter);
 router.use('/reviews', reviewRouter);
 router.use('/vendor/reviews', vendorReviewRouter);
 router.use('/vendor/analytics', vendorAnalyticsRouter);
+router.use('/upload', uploadRouter);
+router.use('/admin', adminRouter);
 
 export default router;

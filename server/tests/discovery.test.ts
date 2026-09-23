@@ -1094,5 +1094,139 @@ describe('Phase 5: Customer Store Discovery & Marketplace', () => {
       expect(res.body.stores[0].storeId).toBe(store.id);
       expect(res.body.stores[0].isOpen).toBe(true);
     });
+
+    it('30. Discovered products catalog filters by specific storeId and price range', async () => {
+      const vendor = await createVendor('prod-filter-vendor@test.com', 'Prod Filter Vendor');
+      const storeCat = await createCategory('Store Cat Prod', 'store-cat-prod');
+      const prodCat = await createProductCategory('Prod Cat Filter', 'prod-cat-filter');
+
+      const storeA = await createTestStore({
+        vendorProfileId: vendor.vendorProfile!.id,
+        storeCategoryId: storeCat.id,
+        name: 'Store Alpha Products',
+        slug: 'store-alpha-products',
+        latitude: CENTER_LAT,
+        longitude: CENTER_LON,
+        deliveryRadiusKm: 10.0,
+      });
+
+      const storeB = await createTestStore({
+        vendorProfileId: vendor.vendorProfile!.id,
+        storeCategoryId: storeCat.id,
+        name: 'Store Beta Products',
+        slug: 'store-beta-products',
+        latitude: CENTER_LAT,
+        longitude: CENTER_LON,
+        deliveryRadiusKm: 10.0,
+      });
+
+      // Product in Store A
+      await prisma.product.create({
+        data: {
+          storeId: storeA.id,
+          productCategoryId: prodCat.id,
+          name: 'Organic Milk 1L',
+          slug: 'organic-milk-1l',
+          price: 250,
+          stockQuantity: 15,
+          unit: 'bottle',
+          isActive: true,
+        },
+      });
+
+      // Product in Store B
+      await prisma.product.create({
+        data: {
+          storeId: storeB.id,
+          productCategoryId: prodCat.id,
+          name: 'Artisan Bread',
+          slug: 'artisan-bread',
+          price: 180,
+          stockQuantity: 10,
+          unit: 'loaf',
+          isActive: true,
+        },
+      });
+
+      // Filter by Store A
+      const resA = await request(app)
+        .get('/api/v1/discovery/products')
+        .query({ storeId: storeA.id });
+
+      expect(resA.status).toBe(200);
+      expect(resA.body.products).toHaveLength(1);
+      expect(resA.body.products[0].name).toBe('Organic Milk 1L');
+      expect(resA.body.products[0].store.id).toBe(storeA.id);
+
+      // Filter by Store B
+      const resB = await request(app)
+        .get('/api/v1/discovery/products')
+        .query({ storeId: storeB.id });
+
+      expect(resB.status).toBe(200);
+      expect(resB.body.products).toHaveLength(1);
+      expect(resB.body.products[0].name).toBe('Artisan Bread');
+
+      // Price filter
+      const resPrice = await request(app)
+        .get('/api/v1/discovery/products')
+        .query({ minPrice: 200 });
+
+      expect(resPrice.status).toBe(200);
+      expect(resPrice.body.products).toHaveLength(1);
+      expect(resPrice.body.products[0].name).toBe('Organic Milk 1L');
+    });
+
+    it('31. Discovered products catalog inStockOnly filtering correctly includes only in-stock items', async () => {
+      const vendor = await createVendor('stock-filter-vendor@test.com', 'Stock Filter Vendor');
+      const storeCat = await createCategory('Stock Cat Prod', 'stock-cat-prod');
+      const prodCat = await createProductCategory('Stock Cat Filter', 'stock-cat-filter');
+
+      const store = await createTestStore({
+        vendorProfileId: vendor.vendorProfile!.id,
+        storeCategoryId: storeCat.id,
+        name: 'Stock Test Store',
+        slug: 'stock-test-store',
+        latitude: CENTER_LAT,
+        longitude: CENTER_LON,
+        deliveryRadiusKm: 10.0,
+      });
+
+      // In stock
+      await prisma.product.create({
+        data: {
+          storeId: store.id,
+          productCategoryId: prodCat.id,
+          name: 'In Stock Cookies',
+          slug: 'in-stock-cookies',
+          price: 100,
+          stockQuantity: 5,
+          unit: 'box',
+          isActive: true,
+        },
+      });
+
+      // Out of stock
+      await prisma.product.create({
+        data: {
+          storeId: store.id,
+          productCategoryId: prodCat.id,
+          name: 'Sold Out Cake',
+          slug: 'sold-out-cake',
+          price: 500,
+          stockQuantity: 0,
+          unit: 'item',
+          isActive: true,
+        },
+      });
+
+      const resInStock = await request(app)
+        .get('/api/v1/discovery/products')
+        .query({ storeId: store.id, inStockOnly: 'true' });
+
+      expect(resInStock.status).toBe(200);
+      expect(resInStock.body.products).toHaveLength(1);
+      expect(resInStock.body.products[0].name).toBe('In Stock Cookies');
+    });
   });
 });

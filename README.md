@@ -108,6 +108,21 @@ $$\text{USER} \longrightarrow \begin{cases} \text{CUSTOMER\_ADDRESSES} \\ \text{
 - [x] Timezone-aware date range filtering (`today`, `last_7_days`, `last_30_days`, `all_time`) adhering to store local timezone.
 - [x] Customer review UI on delivered orders (`/orders/:id`), public store reviews & star display on marketplace store pages (`/stores/:id`), and vendor analytics dashboard (`/vendor`).
 
+### Phase 9: Global Product Catalog, Guest Checkout & Enterprise Platform Administration
+- [x] **Dedicated Single Product Page (`/products/:id`)**: Rich product presentation featuring high-resolution imagery, store location & distance badge, live stock status, dynamic price calculations, non-trapping quantity selector, single-store cart conflict modal handling, and related products carousel.
+- [x] **Cross-Store Product Discovery & Catalog (`/products`)**: Dedicated catalog allowing users to discover products across all nearby delivering merchants. Features responsive vertical left-sidebar filtering by category, store selection, price range, in-stock only toggle, sorting options, and automatic URL query parameter synchronization with mobile drawer support.
+- [x] **Guest Checkout & Frictionless Guest Sessions**: Visitors can browse products, configure quantities, and check out without upfront registration. Supported by `POST /api/v1/auth/guest-session`, temporary guest user tracking (`isGuest: true`), and dual-mode checkout supporting both registered saved addresses and guest inline address inputs (recipient name, phone, address line, city, coordinates).
+- [x] **Post-Purchase Order Confirmation & Printable Invoice (`/orders/:orderId/success`)**: Visual celebration banner, order summary, itemized receipt breakdown, delivery address snapshot, and print invoice button.
+- [x] **Guest Order Tracking Portal (`/orders/track`)**: Allows guest customers to look up their order status using their Order ID and contact phone number.
+- [x] **Sign-Out Warning & Confirmation Safety Modal**: Confirmation modal (`<Dialog>`) implemented in `UserMenu.tsx` across all roles (customers, vendors, admins) to protect unsaved cart sessions.
+- [x] **Interactive Location & GPS Experience**: GPS spinner (`Loader2` animation) with loading state across discovery, homepage, and map pickers.
+- [x] **Production-Grade Admin Dashboard Redesign (`/admin`)**: Fully replaced developer infrastructure cards with real platform KPIs: all-time, monthly, weekly, and today's revenue, order counts, user and merchant tallies, active store counts, live recent order telemetry feed with colored badges, top stores leaderboard, and quick admin action links.
+- [x] **Admin Analytics Dashboard (`/admin/analytics`)**: Real platform-wide performance analytics replacing placeholders, showing revenue breakdowns, order timelines, merchant distribution charts, and recent activity.
+- [x] **Admin User Management Console (`/admin/users`)**: Searchable, paginated user management with role filter tabs (All, Customer, Vendor, Admin), vendor-owned stores modal ("Stores (N)"), role promotion/demotion, and user deletion.
+- [x] **Admin Security & Settings (`/admin/settings`)**: Admin profile privileges overview and secure password update form with BCrypt hashing and client validation.
+- [x] **Media & Image Upload Subsystem (`/api/v1/upload`)**: Upload endpoint with base64 decoding and static asset serving at `/uploads`.
+- [x] **Authentic Seed Data & Reviews Integrity**: 9 verified physical stores, 50+ diverse categorized products, realistic reviews with ratings and comments matching store review statistics.
+
 ---
 
 ## 🛠 Tech Stack
@@ -252,7 +267,20 @@ pnpm build
   - **Tenant-Isolated Operational Analytics**: Vendor metrics computed directly via database aggregations (`totalOrders`, `deliveredOrders`, `cancelledOrders`, `revenue`, `averageOrderValue`, `averageRating`, `reviewCount`, and recent feedback).
   - **Timezone-Aware Date Range Filtering**: Support for `today`, `last_7_days`, `last_30_days`, and `all_time` aligned with store local time.
   - **UI Integration**: Customer review leave/edit modal on order tracking page (`/orders/:id`), store rating summary and public reviews on store pages (`/stores/:id`), and vendor operational analytics dashboard (`/vendor`).
-  - **21 Automated Tests**: 100% passing test coverage verifying review creation, rejections, unique constraints, rating aggregation, privacy, vendor tenant isolation, and period filtering (188 tests total across the platform).
+  - **Automated Tests**: Comprehensive test coverage across all domain modules.
+
+- [x] **Phase 9: Global Product Catalog, Guest Checkout & Enterprise Platform Administration** *(Completed)*
+  - **Single Product Page (`/products/:id`)**: Rich product presentation featuring high-resolution imagery, store location & distance badge, live stock status, dynamic price calculations, quantity selector, single-store cart conflict modal handling, and related products carousel.
+  - **Dedicated Products Catalog (`/products`)**: Responsive vertical left-sidebar filtering by category, store selection, price range, in-stock toggle, sorting options, and URL query parameter sync with mobile drawer support.
+  - **Guest Checkout & Frictionless Sessions**: Transparent guest ordering without upfront login (`POST /api/v1/auth/guest-session`), dual-mode checkout supporting registered and inline addresses, and guest order lookup (`/orders/track`).
+  - **Post-Purchase Order Confirmation (`/orders/:orderId/success`)**: Visual celebration banner, order summary, itemized receipt breakdown, delivery address snapshot, and printable invoice.
+  - **Sign-Out Safety Modal**: Universal confirmation modal before signing out across all roles.
+  - **Interactive Location Experience**: GPS spinner with active loading state across discovery and map modals.
+  - **Enterprise Admin Suite**: Real-time revenue KPIs (total, monthly, weekly, today), order volume telemetry, platform user/merchant counters, active store monitoring, live order telemetry feed, top stores leaderboard, and navigation panel.
+  - **Admin Analytics Dashboard (`/admin/analytics`)**: Live platform metrics, order volume timelines, and merchant distribution charts.
+  - **Admin User Management (`/admin/users`)**: Searchable user listing, role filter tabs, vendor-owned store inspection dialog ("Stores (N)"), role modification, and account deletion.
+  - **Admin Security & Settings (`/admin/settings`)**: Privilege review and secure password update form with BCrypt hashing.
+  - **Media Upload Pipeline**: Secure image upload subsystem (`POST /api/v1/upload`) with static serving.
 
 ---
 

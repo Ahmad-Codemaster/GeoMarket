@@ -347,41 +347,42 @@ export function VendorProductsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
+            <Card key={product.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow group">
+              {/* Product Image Banner */}
+              <div className="relative h-40 w-full overflow-hidden bg-muted/40 border-b">
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center bg-secondary/30 text-muted-foreground">
+                    <Package className="h-10 w-10 opacity-30" />
+                  </div>
+                )}
+                {product.category && (
+                  <Badge variant="secondary" className="absolute top-2.5 left-2.5 backdrop-blur-md bg-background/85 text-[10px] shadow-xs">
+                    {product.category.name}
+                  </Badge>
+                )}
+              </div>
+
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="h-12 w-12 rounded-lg object-cover border"
-                        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                          // Fallback to placeholder icon on image error
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border">
-                        <Package className="h-6 w-6" />
-                      </div>
-                    )}
-                    <div>
-                      <CardTitle className="text-base font-semibold leading-snug line-clamp-1">
-                        {product.name}
-                      </CardTitle>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        {product.category && (
-                          <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
-                            {product.category.name}
-                          </Badge>
-                        )}
-                        {product.sku && (
-                          <span className="text-[11px] text-muted-foreground font-mono">
-                            SKU: {product.sku}
-                          </span>
-                        )}
-                      </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                      {product.name}
+                    </CardTitle>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {product.sku && (
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          SKU: {product.sku}
+                        </span>
+                      )}
                     </div>
                   </div>
 

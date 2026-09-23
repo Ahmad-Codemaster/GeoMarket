@@ -66,3 +66,30 @@ export interface CustomerProductDto {
   unit: string | null;
   category?: ProductCategorySummaryDto;
 }
+
+export interface DiscoveredProductStoreSummaryDto {
+  id: string;
+  name: string;
+  slug: string;
+  addressLine: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  deliveryRadiusKm: number;
+  baseDeliveryFee: number;
+  minOrderAmount: number;
+  averageRating: number;
+  totalReviews: number;
+  isOpen: boolean;
+  isAcceptingOrders: boolean;
+}
+
+export interface DiscoveredProductDetailDto extends CustomerProductDto {
+  store: DiscoveredProductStoreSummaryDto;
+  relatedProducts: CustomerProductDto[];
+}
+
+export interface DiscoveredProductsListResponseDto {
+  products: (CustomerProductDto & { store: DiscoveredProductStoreSummaryDto })[];
+  pagination: DiscoveryPaginationDto;
+}

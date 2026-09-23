@@ -8,7 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   CLIENT_ORIGIN: z.string().url(),
   COOKIE_SECURE: z.string().transform((v) => v === 'true').default('false'),
-  MAX_DELIVERY_RADIUS_KM: z.coerce.number().default(30),
+  MAX_DELIVERY_RADIUS_KM: z.coerce.number().default(500),
 });
 
 const parsed = envSchema.safeParse(process.env);

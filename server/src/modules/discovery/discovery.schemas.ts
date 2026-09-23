@@ -48,5 +48,26 @@ export const storeProductsQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+export const productsDiscoveryQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  productCategoryId: z.string().uuid().optional(),
+  storeId: z.string().uuid().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  inStockOnly: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        if (val.toLowerCase() === 'true' || val === '1') return true;
+        if (val.toLowerCase() === 'false' || val === '0') return false;
+      }
+      return val;
+    }, z.boolean().optional())
+    .optional(),
+  sortBy: z.enum(['price_asc', 'price_desc', 'name_asc', 'newest']).optional().default('newest'),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(12),
+});
+
 export type StoreDiscoveryQueryInput = z.infer<typeof storeDiscoveryQuerySchema>;
 export type StoreProductsQueryInput = z.infer<typeof storeProductsQuerySchema>;
+export type ProductsDiscoveryQueryInput = z.infer<typeof productsDiscoveryQuerySchema>;

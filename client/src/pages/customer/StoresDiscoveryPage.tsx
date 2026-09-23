@@ -13,6 +13,7 @@ import {
   AlertCircle,
   RotateCw,
   Store as StoreIcon,
+  Loader2,
 } from 'lucide-react';
 import { PageContainer, PageHeader } from '../../components/layout/PageContainer';
 import { Input } from '../../components/ui/input';
@@ -53,14 +54,34 @@ export function StoresDiscoveryPage() {
 
   // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('storeCategoryId') || 'ALL');
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
-  // Initialize active location from default address or first saved address
+  // Initialize active location from URL query params, default address, or fallback to Faisalabad
   useEffect(() => {
-    if (addresses && addresses.length > 0 && !activeLocation) {
+    if (activeLocation) return;
+
+    const latParam = searchParams.get('latitude');
+    const lngParam = searchParams.get('longitude');
+
+    if (latParam && lngParam) {
+      const lat = parseFloat(latParam);
+      const lng = parseFloat(lngParam);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setActiveLocation({
+          latitude: lat,
+          longitude: lng,
+          label: 'Delivery Coordinates',
+          addressLine: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        });
+        return;
+      }
+    }
+
+    if (addresses && addresses.length > 0) {
       const def = addresses.find((a) => a.isDefault) || addresses[0];
       setSelectedAddressId(def.id);
       setActiveLocation({
@@ -69,8 +90,19 @@ export function StoresDiscoveryPage() {
         label: def.addressLabel,
         addressLine: def.addressLine,
       });
+      return;
     }
-  }, [addresses, activeLocation]);
+
+    if (!user && !addressesLoading) {
+      // Default to reference coordinates for guest discovery (Peoples Colony, Faisalabad)
+      setActiveLocation({
+        latitude: 31.4200,
+        longitude: 73.1200,
+        label: 'Peoples Colony, Faisalabad',
+        addressLine: 'Peoples Colony No. 1, Faisalabad',
+      });
+    }
+  }, [addresses, activeLocation, searchParams, user, addressesLoading]);
 
   // Handle address change from dropdown
   const handleSelectAddress = (id: string) => {
@@ -98,22 +130,26 @@ export function StoresDiscoveryPage() {
       return;
     }
 
+    setIsDetectingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setIsDetectingLocation(false);
         setSelectedAddressId('gps');
         setActiveLocation({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
-          label: 'Current GPS Location',
+          label: 'Current Location',
+          addressLine: 'Near your current GPS coordinates',
         });
         setPage(1);
         toast({
           title: 'Location Updated',
-          description: `Locked to coordinates (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`,
+          description: 'Showing stores delivering to your current location.',
           variant: 'default',
         });
       },
       (err) => {
+        setIsDetectingLocation(false);
         toast({
           title: 'Location access denied',
           description: 'Please select a saved address or allow browser location access.',
@@ -152,39 +188,34 @@ export function StoresDiscoveryPage() {
     <PageContainer width="wide">
       <PageHeader
         title="Discover Stores"
-        description="Find approved local merchants delivering directly to your exact location."
+        description="Find approved local merchants delivering fresh directly to your location."
       />
 
       <div className="space-y-6">
         {/* ─── Location Toolbar ────────────────────────────────────────────── */}
-        <div className="rounded-xl border bg-card p-4 md:p-5 shadow-2xs space-y-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 md:p-5 shadow-xs space-y-4">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            {/* Active Delivery Coordinates Display */}
+            {/* Active Delivery Location Display */}
             <div className="flex items-start gap-3">
-              <div className="rounded-full bg-primary/10 p-2.5 shrink-0 text-primary mt-0.5">
-                <MapPin className="h-5 w-5 text-accent" />
+              <div className="rounded-xl bg-emerald-50 p-2.5 shrink-0 text-emerald-600 mt-0.5 border border-emerald-100">
+                <MapPin className="h-5 w-5" />
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Active Delivery Zone
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Delivery Location
                   </span>
                   {activeLocation && (
-                    <Badge variant="success" className="text-[10px] py-0">
-                      Coordinates Locked
+                    <Badge className="bg-emerald-600 text-white text-[10px] py-0 px-2 rounded-md">
+                      Active
                     </Badge>
                   )}
                 </div>
-                <p className="font-semibold text-base text-foreground">
+                <p className="font-bold text-base text-slate-900">
                   {activeLocation
                     ? `${activeLocation.label}${activeLocation.addressLine ? ` — ${activeLocation.addressLine}` : ''}`
                     : 'No Location Selected'}
                 </p>
-                {activeLocation && (
-                  <p className="text-xs text-muted-foreground font-mono">
-                    ({activeLocation.latitude.toFixed(4)}, {activeLocation.longitude.toFixed(4)})
-                  </p>
-                )}
               </div>
             </div>
 
@@ -196,7 +227,7 @@ export function StoresDiscoveryPage() {
                     value={selectedAddressId}
                     onValueChange={handleSelectAddress}
                   >
-                    <SelectTrigger className="h-9 text-xs">
+                    <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200">
                       <SelectValue placeholder="Choose saved address" />
                     </SelectTrigger>
                     <SelectContent>
@@ -213,32 +244,37 @@ export function StoresDiscoveryPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs h-9"
+                className="gap-1.5 text-xs h-9 rounded-xl border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
                 onClick={handleDetectCurrentLocation}
+                disabled={isDetectingLocation}
               >
-                <Compass className="h-3.5 w-3.5 text-accent" />
-                <span>Use Current GPS</span>
+                {isDetectingLocation ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <Compass className="h-3.5 w-3.5 text-emerald-600" />
+                )}
+                <span>{isDetectingLocation ? 'Detecting Location…' : 'Use Current GPS'}</span>
               </Button>
 
               <Button
                 variant="secondary"
                 size="sm"
-                className="gap-1.5 text-xs h-9"
+                className="gap-1.5 text-xs h-9 rounded-xl"
                 onClick={() => setLocationModalOpen(true)}
               >
-                <MapPin className="h-3.5 w-3.5" />
-                <span>Change Pin</span>
+                <MapPin className="h-3.5 w-3.5 text-slate-600" />
+                <span>Select on Map</span>
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 shrink-0"
+                className="h-9 w-9 shrink-0 rounded-xl"
                 onClick={() => refetchDiscovery()}
                 disabled={isFetching}
                 title="Refresh stores"
               >
-                <RotateCw className={`h-4 w-4 ${isFetching ? 'animate-spin text-primary' : ''}`} />
+                <RotateCw className={`h-4 w-4 ${isFetching ? 'animate-spin text-emerald-600' : ''}`} />
               </Button>
             </div>
           </div>
@@ -321,19 +357,19 @@ export function StoresDiscoveryPage() {
 
         {/* ─── Content Area ────────────────────────────────────────────────── */}
         {!activeLocation ? (
-          <Card>
+          <Card className="rounded-2xl border-slate-200">
             <CardContent className="py-16 text-center">
               <EmptyState
                 icon={Compass}
                 title="Delivery Location Required"
-                description="GeoMarket relies on PostGIS straight-line perimeter filtering. Please select an address or use your current location above to find eligible stores."
+                description="Please select an address or use your current GPS location above to find stores delivering to your area."
               />
             </CardContent>
           </Card>
         ) : discoveryLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="p-5 space-y-4">
+              <Card key={i} className="p-5 space-y-4 rounded-2xl">
                 <div className="flex justify-between">
                   <Skeleton className="h-6 w-36" />
                   <Skeleton className="h-5 w-16" />
@@ -347,19 +383,19 @@ export function StoresDiscoveryPage() {
         ) : discoveryError ? (
           <ErrorState
             title="Unable to load nearby stores"
-            message="A problem occurred while querying the geospatial discovery engine. Please try again."
+            message="A problem occurred while looking up stores in your delivery area. Please try again."
             onRetry={() => refetchDiscovery()}
           />
         ) : stores.length === 0 ? (
-          <Card>
+          <Card className="rounded-2xl border-slate-200">
             <CardContent className="py-16">
               <EmptyState
                 icon={StoreIcon}
                 title="No Stores Delivering to Your Location"
                 description={
                   searchQuery
-                    ? `No eligible stores found matching "${searchQuery}" within delivery range.`
-                    : 'There are currently no approved stores whose delivery radius covers your selected coordinates. Try selecting another drop-off pin.'
+                    ? `No stores found matching "${searchQuery}" in your delivery area.`
+                    : 'There are currently no stores available delivering to this location. Try choosing another delivery pin.'
                 }
               />
             </CardContent>
@@ -391,16 +427,16 @@ export function StoresDiscoveryPage() {
             {/* ─── Pagination Bar ──────────────────────────────────────────── */}
             {pagination && pagination.totalPages > 1 && (
               <div className="flex items-center justify-between border-t pt-4 px-2">
-                <p className="text-xs text-muted-foreground">
-                  Showing Page <span className="font-semibold">{pagination.page}</span> of{' '}
-                  <span className="font-semibold">{pagination.totalPages}</span> ({pagination.total} stores found)
+                <p className="text-xs text-slate-500">
+                  Showing Page <span className="font-semibold text-slate-900">{pagination.page}</span> of{' '}
+                  <span className="font-semibold text-slate-900">{pagination.totalPages}</span> ({pagination.total} stores found)
                 </p>
 
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1 text-xs"
+                    className="gap-1 text-xs rounded-xl"
                     disabled={!pagination.hasPrevPage}
                     onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   >
@@ -410,7 +446,7 @@ export function StoresDiscoveryPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1 text-xs"
+                    className="gap-1 text-xs rounded-xl"
                     disabled={!pagination.hasNextPage}
                     onClick={() => setPage((p) => p + 1)}
                   >
@@ -424,7 +460,7 @@ export function StoresDiscoveryPage() {
         )}
       </div>
 
-      {/* Location Picker Modal for creating or changing addresses / picking temporary pins */}
+      {/* Location Picker Modal */}
       <LocationPickerModal
         open={locationModalOpen}
         onOpenChange={setLocationModalOpen}
@@ -441,8 +477,8 @@ export function StoresDiscoveryPage() {
           });
           setPage(1);
           toast({
-            title: 'Pin Selected',
-            description: `Delivery coordinates set to (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`,
+            title: 'Location Selected',
+            description: `Delivery location set to ${coords.label || 'chosen map location'}.`,
             variant: 'default',
           });
         }}

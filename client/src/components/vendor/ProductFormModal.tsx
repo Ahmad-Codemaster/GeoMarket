@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Package,
   Loader2,
@@ -9,6 +9,9 @@ import {
   FileText,
   Image as ImageIcon,
   Check,
+  Upload,
+  X,
+  Sparkles,
 } from 'lucide-react';
 import {
   Dialog,
@@ -24,7 +27,26 @@ import { Label } from '../ui/label';
 import { useProductCategories } from '../../hooks/useCategories';
 import { useCreateProduct, useUpdateProduct } from '../../hooks/useProducts';
 import { toast } from '../../hooks/useToast';
+import { uploadApi } from '../../lib/api';
 import type { ProductDto, StoreDto } from '@geomarket/shared';
+
+const PRESET_PRODUCT_IMAGES = [
+  { label: 'Smartphone', url: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Laptop', url: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Headphones', url: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Smart TV', url: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Luxury Suit', url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Men Kurta', url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Shoes', url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Perfume', url: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Chocolates', url: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Basmati Rice', url: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Cooking Oil', url: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Fresh Butchery', url: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Artisan Cake', url: 'https://images.unsplash.com/photo-1586788680434-30d324b2d46f?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Croissant', url: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Sports Gear', url: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=600&q=80' },
+];
 
 interface ProductFormModalProps {
   open: boolean;
@@ -62,6 +84,41 @@ export function ProductFormModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Product image size cannot exceed 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const res = await uploadApi.uploadImage(file);
+      setImageUrl(res.url);
+      toast({
+        title: 'Image Uploaded',
+        description: 'Product image uploaded successfully.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Upload Failed',
+        description: err.message || 'Could not upload image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (product) {
@@ -357,17 +414,123 @@ export function ProductFormModal({
             </div>
           </div>
 
-          {/* Image URL */}
-          <div className="space-y-1.5">
-            <Label htmlFor="imageUrl" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Product Image URL <span className="text-muted-foreground font-normal">(Optional)</span>
-            </Label>
-            <Input
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://images.example.com/item.jpg"
+          {/* Product Image Management (Upload, Presets, or Direct URL) */}
+          <div className="space-y-3 p-3.5 rounded-xl border bg-muted/20">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="imageUrl" className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                Product Visual &amp; Photography
+              </Label>
+              {imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setImageUrl('')}
+                  className="text-[11px] text-destructive hover:underline flex items-center gap-1 font-medium"
+                >
+                  <X className="h-3 w-3" /> Remove Image
+                </button>
+              )}
+            </div>
+
+            {/* Live Image Preview */}
+            {imageUrl ? (
+              <div className="relative h-44 w-full rounded-lg border overflow-hidden bg-background shadow-xs group">
+                <img
+                  src={imageUrl}
+                  alt="Product preview"
+                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-white text-[10px] font-medium backdrop-blur-xs flex items-center gap-1">
+                  <Check className="h-3 w-3 text-emerald-400" /> Active Preview
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="h-32 w-full rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer bg-background/50 hover:bg-background"
+              >
+                {isUploading ? (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <Loader2 className="h-5 w-5 animate-spin" /> Uploading image…
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-2.5 rounded-full bg-primary/10 text-primary">
+                      <Upload className="h-5 w-5" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-semibold text-foreground">Click to upload product photo</p>
+                      <p className="text-[10px] text-muted-foreground">PNG, JPG, or WEBP up to 5MB</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Hidden native file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
             />
+
+            {/* Upload Action Button & Direct URL Input */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="shrink-0 text-xs font-medium"
+              >
+                {isUploading ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                )}
+                Browse File…
+              </Button>
+
+              <div className="flex-1">
+                <Input
+                  id="imageUrl"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="Or paste external image URL (https://...)"
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Quick-Pick Image Presets */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-accent" />
+                Or pick from instant department presets:
+              </span>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                {PRESET_PRODUCT_IMAGES.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setImageUrl(preset.url)}
+                    className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${
+                      imageUrl === preset.url
+                        ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                        : 'bg-background hover:bg-secondary text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Description */}

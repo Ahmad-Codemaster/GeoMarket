@@ -32,9 +32,9 @@ interface LocationPickerModalProps {
 }
 
 
-// Default initial centroid: Faisalabad, Pakistan
-const DEFAULT_LAT = 31.4124;
-const DEFAULT_LON = 73.1091;
+// Default initial centroid: Faisalabad, Pakistan (Peoples Colony)
+const DEFAULT_LAT = 31.4200;
+const DEFAULT_LON = 73.1200;
 
 function MapEventHandler({
   onPositionChange,
@@ -82,6 +82,8 @@ export function LocationPickerModal({
 
   const markerRef = useRef<L.Marker | null>(null);
 
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
   // Trigger reverse geocoding when position changes
   const handlePositionChange = async (lat: number, lon: number) => {
     setPosition([lat, lon]);
@@ -102,11 +104,17 @@ export function LocationPickerModal({
       toast({ title: 'Geolocation unavailable', description: 'Browser does not support geolocation.' });
       return;
     }
+    setIsDetectingLocation(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        handlePositionChange(pos.coords.latitude, pos.coords.longitude);
+      async (pos) => {
+        try {
+          await handlePositionChange(pos.coords.latitude, pos.coords.longitude);
+        } finally {
+          setIsDetectingLocation(false);
+        }
       },
       (err) => {
+        setIsDetectingLocation(false);
         toast({ title: 'Location access denied', description: 'Please choose on the map manually.' });
       },
       { timeout: 8000 },
@@ -225,9 +233,20 @@ export function LocationPickerModal({
               </Button>
             </form>
 
-            <Button type="button" size="sm" variant="outline" onClick={handleDetectLocation} className="shrink-0 gap-1.5">
-              <Compass className="h-4 w-4 text-accent" />
-              Use My Location
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleDetectLocation}
+              disabled={isDetectingLocation}
+              className="shrink-0 gap-1.5"
+            >
+              {isDetectingLocation ? (
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+              ) : (
+                <Compass className="h-4 w-4 text-accent" />
+              )}
+              {isDetectingLocation ? 'Detecting…' : 'Use My Location'}
             </Button>
           </div>
 

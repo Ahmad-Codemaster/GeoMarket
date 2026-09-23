@@ -4,6 +4,7 @@ import {
   updateOrderStatusSchema,
   uuidParamSchema,
   orderQuerySchema,
+  orderLookupSchema,
 } from './order.schemas';
 import * as orderService from './order.service';
 import { OrderServiceError } from './order.service';
@@ -20,7 +21,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
       });
     }
 
-    const order = await orderService.checkout(userId, parsed.data.addressId);
+    const order = await orderService.checkout(userId, parsed.data as any);
     return res.status(201).json({ order });
   } catch (err) {
     if (err instanceof OrderServiceError) {
@@ -28,6 +29,29 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
         error: err.message,
         code: err.code,
         ...(err.details || {}),
+      });
+    }
+    next(err);
+  }
+}
+
+export async function lookupGuestOrder(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = orderLookupSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const order = await orderService.lookupGuestOrder(parsed.data.orderId, parsed.data.phone);
+    return res.status(200).json({ order });
+  } catch (err) {
+    if (err instanceof OrderServiceError) {
+      return res.status(err.statusCode).json({
+        error: err.message,
+        code: err.code,
       });
     }
     next(err);

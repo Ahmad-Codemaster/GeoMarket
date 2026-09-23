@@ -1,6 +1,8 @@
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
+import { prisma } from '../../lib/prisma';
 import { UserRole, JwtPayload, AuthUser } from '@geomarket/shared';
 import {
   findUserByEmail,
@@ -8,7 +10,7 @@ import {
   createCustomer,
   createVendorWithProfile,
 } from './auth.repository';
-import type { RegisterCustomerInput, RegisterVendorInput, LoginInput } from './auth.schemas';
+import type { RegisterCustomerInput, RegisterVendorInput, LoginInput, GuestSessionInput } from './auth.schemas';
 
 const BCRYPT_COST_FACTOR = 12;
 
@@ -20,6 +22,7 @@ export function buildAuthUser(user: {
   lastName: string;
   phone: string;
   isActive: boolean;
+  isGuest?: boolean;
   vendorProfile: { id: string } | null;
 }): AuthUser {
   return {
@@ -30,6 +33,7 @@ export function buildAuthUser(user: {
     lastName: user.lastName,
     phone: user.phone,
     isActive: user.isActive,
+    isGuest: (user as any).isGuest ?? false,
     vendorProfileId: user.vendorProfile?.id ?? null,
   };
 }
@@ -111,5 +115,30 @@ export async function login(input: LoginInput): Promise<AuthUser> {
 export async function getAuthenticatedUser(userId: string): Promise<AuthUser | null> {
   const user = await findUserById(userId);
   if (!user || !user.isActive) return null;
+  return buildAuthUser(user);
+}
+
+export async function createOrRestoreGuestSession(input?: GuestSessionInput): Promise<AuthUser> {
+  const guestId = crypto.randomUUID().slice(0, 8);
+  const email = input?.email || `guest_${guestId}@guest.geomarket.local`;
+  const passwordHash = await bcrypt.hash(crypto.randomUUID(), 10);
+  const firstName = input?.firstName || 'Guest';
+  const lastName = input?.lastName || 'Customer';
+  const phone = input?.phone || '+923000000000';
+
+  const user = await (prisma.user as any).create({
+    data: {
+      email: email.toLowerCase().trim(),
+      passwordHash,
+      role: UserRole.CUSTOMER,
+      firstName,
+      lastName,
+      phone,
+      isGuest: true,
+      isActive: true,
+    },
+    include: { vendorProfile: true },
+  });
+
   return buildAuthUser(user);
 }

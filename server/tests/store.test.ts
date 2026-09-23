@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { createApp } from '../src/app';
 import { prisma } from '../src/lib/prisma';
 import { UserRole, StoreStatus } from '@geomarket/shared';
+import { env } from '../src/config/env';
 
 const app = createApp();
 
@@ -21,6 +22,12 @@ const SAMPLE_STORE = {
 };
 
 async function cleanDatabase() {
+  await prisma.review.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.orderAddressSnapshot.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.cartItem.deleteMany();
+  await prisma.cart.deleteMany();
   await prisma.customerAddress.deleteMany();
   await prisma.storeOperatingHours.deleteMany();
   await prisma.product.deleteMany();
@@ -429,14 +436,14 @@ describe('Phase 3: Physical Store Onboarding & Administration', () => {
         });
       expect(negativeRes.status).toBe(400);
 
-      // > 30 km (env default) rejected
+      // > MAX_DELIVERY_RADIUS_KM (env limit) rejected
       const overMaxRes = await request(app)
         .post('/api/v1/vendor/stores')
         .set('Cookie', vendorCookie)
         .send({
           ...SAMPLE_STORE,
           storeCategoryId: category.id,
-          deliveryRadiusKm: 31,
+          deliveryRadiusKm: env.MAX_DELIVERY_RADIUS_KM + 1,
         });
       expect(overMaxRes.status).toBe(400);
 
@@ -447,10 +454,10 @@ describe('Phase 3: Physical Store Onboarding & Administration', () => {
         .send({
           ...SAMPLE_STORE,
           storeCategoryId: category.id,
-          deliveryRadiusKm: 30,
+          deliveryRadiusKm: Math.min(30, env.MAX_DELIVERY_RADIUS_KM),
         });
       expect(validRes.status).toBe(201);
-      expect(validRes.body.store.deliveryRadiusKm).toBe(30);
+      expect(validRes.body.store.deliveryRadiusKm).toBe(Math.min(30, env.MAX_DELIVERY_RADIUS_KM));
     });
   });
 
