@@ -19,6 +19,9 @@
     "node": ">=20.0.0 <23.0.0",
     "pnpm": ">=9.0.0"
   },
+  "prisma": {
+    "schema": "server/prisma/schema.prisma"
+  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/client",
