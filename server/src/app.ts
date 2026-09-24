@@ -37,6 +37,11 @@ export function createApp() {
   }
   app.use('/uploads', express.static(uploadsDir));
 
+  // Instant health check for hosting platforms (Render, Railway, etc.)
+  app.get(['/health', '/api/v1/health'], (_req, res) => {
+    return res.status(200).send('OK');
+  });
+
   // Root status endpoint
   app.get('/', (_req, res) => {
     return res.json({

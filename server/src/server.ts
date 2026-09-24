@@ -6,8 +6,8 @@ import { prisma } from './lib/prisma';
 
 const app = createApp();
 
-app.listen(env.PORT, () => {
-  console.log(`[GeoMarket Server] Running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+app.listen(env.PORT, '0.0.0.0', () => {
+  console.log(`[GeoMarket Server] Running on http://0.0.0.0:${env.PORT} in ${env.NODE_ENV} mode`);
 });
 
 process.on('SIGTERM', async () => {
