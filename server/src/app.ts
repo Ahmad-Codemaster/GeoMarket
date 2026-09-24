@@ -10,10 +10,13 @@ export function createApp() {
   const app = express();
 
   // CORS: allow configured origin, or dynamic origin in development for live tunnels (ngrok, cloudflare)
+  const allowedOrigins = env.CLIENT_ORIGIN.split(',').map((o) => o.trim());
+  const allowAllOrigins = allowedOrigins.includes('*');
+
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || env.NODE_ENV !== 'production' || origin === env.CLIENT_ORIGIN) {
+        if (!origin || env.NODE_ENV !== 'production' || allowAllOrigins || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
         return callback(new Error('Not allowed by CORS'));
