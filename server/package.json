@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "node node_modules/prisma/build/index.js generate && tsc",
+    "build": "pnpm exec prisma generate && tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",
     "seed": "tsx src/seed.ts",
-    "db:migrate": "node node_modules/prisma/build/index.js migrate dev",
-    "db:generate": "node node_modules/prisma/build/index.js generate",
-    "db:push": "node node_modules/prisma/build/index.js db push"
+    "db:migrate": "pnpm exec prisma migrate dev",
+    "db:generate": "pnpm exec prisma generate",
+    "db:push": "pnpm exec prisma db push"
   },
   "dependencies": {
     "@geomarket/shared": "workspace:*",
