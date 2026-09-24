@@ -7,11 +7,12 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src --ext .ts",
-    "seed": "tsx src/seed.ts",
+    "seed": "node dist/seed.js",
+    "seed:ts": "tsx src/seed.ts",
     "db:migrate": "pnpm exec prisma migrate dev --schema=prisma/schema.prisma",
     "db:generate": "pnpm exec prisma generate --schema=prisma/schema.prisma",
-    "db:push": "pnpm exec prisma db push --schema=prisma/schema.prisma"
+    "db:push": "pnpm exec prisma db push --schema=prisma/schema.prisma",
+    "db:deploy": "pnpm exec prisma db push --schema=prisma/schema.prisma && node dist/seed.js"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

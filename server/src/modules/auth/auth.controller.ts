@@ -4,10 +4,11 @@ import * as authService from './auth.service';
 import { env } from '../../config/env';
 
 function getCookieOptions() {
+  const isProd = env.NODE_ENV === 'production';
   return {
     httpOnly: true,
-    secure: env.COOKIE_SECURE,
-    sameSite: 'lax' as const,
+    secure: isProd || env.COOKIE_SECURE,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     path: '/',
     maxAge: env.JWT_EXPIRES_IN * 1000, // milliseconds
   };
@@ -24,7 +25,7 @@ export async function registerCustomer(req: Request, res: Response, next: NextFu
     const token = authService.signToken(user);
 
     res.cookie('token', token, getCookieOptions());
-    return res.status(201).json({ user });
+    return res.status(201).json({ user, token });
   } catch (err) {
     if (err instanceof Error && err.message === 'EMAIL_ALREADY_EXISTS') {
       return res.status(409).json({ error: 'An account with this email already exists' });
@@ -44,7 +45,7 @@ export async function registerVendor(req: Request, res: Response, next: NextFunc
     const token = authService.signToken(user);
 
     res.cookie('token', token, getCookieOptions());
-    return res.status(201).json({ user });
+    return res.status(201).json({ user, token });
   } catch (err) {
     if (err instanceof Error && err.message === 'EMAIL_ALREADY_EXISTS') {
       return res.status(409).json({ error: 'An account with this email already exists' });
@@ -64,7 +65,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     const token = authService.signToken(user);
 
     res.cookie('token', token, getCookieOptions());
-    return res.status(200).json({ user });
+    return res.status(200).json({ user, token });
   } catch (err) {
     if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -74,10 +75,11 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function logout(_req: Request, res: Response) {
+  const isProd = env.NODE_ENV === 'production';
   res.clearCookie('token', {
     httpOnly: true,
-    secure: env.COOKIE_SECURE,
-    sameSite: 'lax' as const,
+    secure: isProd || env.COOKIE_SECURE,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     path: '/',
   });
   return res.status(200).json({ message: 'Logged out successfully' });
@@ -100,7 +102,7 @@ export async function guestSession(req: Request, res: Response, next: NextFuncti
     const token = authService.signToken(user);
 
     res.cookie('token', token, getCookieOptions());
-    return res.status(200).json({ user });
+    return res.status(200).json({ user, token });
   } catch (err) {
     next(err);
   }

@@ -45,6 +45,26 @@ import type {
 
 const BASE = `${((import.meta as any).env?.VITE_API_URL as string) || ''}/api/v1`;
 
+const TOKEN_STORAGE_KEY = 'geomarket_auth_token';
+
+export function getStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredToken(token: string | null): void {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {}
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -58,16 +78,26 @@ export class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     credentials: 'include', // Always send HttpOnly cookies
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
+    headers,
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      // Clear token if unauthorized on a protected call
+      if (!path.startsWith('/auth/me') && !path.startsWith('/auth/login')) {
+        setStoredToken(null);
+      }
+    }
     const body = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new ApiError(res.status, body.error ?? 'Request failed', body.code, body);
   }
@@ -98,32 +128,46 @@ export interface RegisterVendorInput extends RegisterCustomerInput {
 export const authApi = {
   me: () => apiFetch<{ user: AuthUser }>('/auth/me'),
 
-  login: (data: LoginInput) =>
-    apiFetch<{ user: AuthUser }>('/auth/login', {
+  login: async (data: LoginInput) => {
+    const res = await apiFetch<{ user: AuthUser; token?: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+    if (res.token) setStoredToken(res.token);
+    return res;
+  },
 
-  registerCustomer: (data: RegisterCustomerInput) =>
-    apiFetch<{ user: AuthUser }>('/auth/register/customer', {
+  registerCustomer: async (data: RegisterCustomerInput) => {
+    const res = await apiFetch<{ user: AuthUser; token?: string }>('/auth/register/customer', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+    if (res.token) setStoredToken(res.token);
+    return res;
+  },
 
-  registerVendor: (data: RegisterVendorInput) =>
-    apiFetch<{ user: AuthUser }>('/auth/register/vendor', {
+  registerVendor: async (data: RegisterVendorInput) => {
+    const res = await apiFetch<{ user: AuthUser; token?: string }>('/auth/register/vendor', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+    if (res.token) setStoredToken(res.token);
+    return res;
+  },
 
-  guestSession: (data?: { firstName?: string; lastName?: string; phone?: string; email?: string }) =>
-    apiFetch<{ user: AuthUser }>('/auth/guest-session', {
+  guestSession: async (data?: { firstName?: string; lastName?: string; phone?: string; email?: string }) => {
+    const res = await apiFetch<{ user: AuthUser; token?: string }>('/auth/guest-session', {
       method: 'POST',
       body: JSON.stringify(data || {}),
-    }),
+    });
+    if (res.token) setStoredToken(res.token);
+    return res;
+  },
 
-  logout: () =>
-    apiFetch<{ message: string }>('/auth/logout', { method: 'POST' }),
+  logout: async () => {
+    setStoredToken(null);
+    return apiFetch<{ message: string }>('/auth/logout', { method: 'POST' });
+  },
 };
 
 // ─── Customer Addresses ───────────────────────────────────────────────────────
