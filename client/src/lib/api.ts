@@ -43,7 +43,19 @@ import type {
   AnalyticsPeriod,
 } from '@geomarket/shared';
 
-const BASE = `${((import.meta as any).env?.VITE_API_URL as string) || ''}/api/v1`;
+function getApiBaseUrl(): string {
+  const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  // Automatically connect to the backend service on Render
+  if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+    return 'https://geomarket.onrender.com';
+  }
+  return '';
+}
+
+const BASE = `${getApiBaseUrl()}/api/v1`;
 
 const TOKEN_STORAGE_KEY = 'geomarket_auth_token';
 
