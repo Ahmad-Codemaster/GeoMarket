@@ -66,18 +66,44 @@ export function VendorDashboardPage() {
       />
 
       <div className="space-y-6">
-        {/* Architecture & Phase Status Banner */}
-        <Alert variant="info">
-          <Store className="h-4 w-4" />
-          <AlertTitle>Vendor Operations &amp; Performance Analytics (Phase 8 Active)</AlertTitle>
-          <AlertDescription className="text-xs leading-relaxed">
-            Your account is linked 1:1 with a <strong>VendorProfile</strong> (ID:{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono">
-              {user?.vendorProfileId || 'Linked'}
-            </code>
-            ). You are managing <strong>{stores.length} physical store(s)</strong> and <strong>{products.length} catalog product(s)</strong> with real-time operational analytics and customer reviews.
-          </AlertDescription>
-        </Alert>
+        {/* Merchant Operational Overview Banner */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Merchant Workspace
+                </span>
+                <Badge variant="outline" className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border-emerald-200">
+                  Live Operations
+                </Badge>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Welcome back, {user?.firstName} {user?.lastName}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Overview of your storefronts, catalog items, and fulfillments across GeoMarket.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+              <div className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-center min-w-24">
+                <span className="text-slate-500 text-[11px] block">Active Stores</span>
+                <span className="font-extrabold text-base text-slate-900">{stores.length}</span>
+              </div>
+              <div className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-center min-w-24">
+                <span className="text-slate-500 text-[11px] block">Catalog Items</span>
+                <span className="font-extrabold text-base text-slate-900">{products.length}</span>
+              </div>
+              <div className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-center min-w-24">
+                <span className="text-slate-500 text-[11px] block">Accepting Orders</span>
+                <span className="font-extrabold text-base text-emerald-600">
+                  {stores.filter((s) => s.isActive && s.isAcceptingOrders).length}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Operational Analytics Section */}
         <div className="space-y-4">

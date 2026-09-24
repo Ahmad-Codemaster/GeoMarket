@@ -324,6 +324,83 @@ describe('Phase 7: Checkout, COD, and Order Fulfillment Lifecycle', () => {
       expect(order.addressSnapshot.recipientPhone).toBe('+923005554433');
       expect(order.addressSnapshot.address).toBe('House 42, Street 7, Gulberg III');
     });
+
+    it('guarantees historical order price immutability when product price changes', async () => {
+      // 1. Create product at price A (Rs. 250)
+      const testProduct = await createProductForStore(vendorA.cookie, storeA.id, prodCat.id, {
+        name: 'Artisan Sourdough',
+        price: 250.0,
+        stockQuantity: 50,
+      });
+
+      // 2. Customer places order: 2 × Rs. 250 = Rs. 500 (+ Rs. 150 delivery fee = Rs. 650)
+      await request(app)
+        .post('/api/v1/cart/items')
+        .set('Cookie', customerA.cookie)
+        .send({ productId: testProduct.id, quantity: 2 });
+
+      const checkoutRes = await request(app)
+        .post('/api/v1/checkout')
+        .set('Cookie', customerA.cookie)
+        .send({ addressId: addressA.id });
+
+      expect(checkoutRes.status).toBe(201);
+      const placedOrder = checkoutRes.body.order;
+      expect(placedOrder.subtotal).toBe(500);
+      expect(placedOrder.deliveryFee).toBe(150);
+      expect(placedOrder.totalAmount).toBe(650);
+
+      const placedItem = placedOrder.items.find((i: any) => i.productId === testProduct.id);
+      expect(placedItem.unitPriceSnapshot).toBe(250);
+      expect(placedItem.quantity).toBe(2);
+      expect(placedItem.lineTotal).toBe(500);
+
+      // 3. Vendor later updates product price to price B (Rs. 350)
+      const updateRes = await request(app)
+        .put(`/api/v1/vendor/products/${testProduct.id}`)
+        .set('Cookie', vendorA.cookie)
+        .send({ price: 350.0 });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.product.price).toBe(350);
+
+      // 4. Retrieve the old order as customer
+      const customerOrderRes = await request(app)
+        .get(`/api/v1/orders/${placedOrder.id}`)
+        .set('Cookie', customerA.cookie);
+
+      expect(customerOrderRes.status).toBe(200);
+      const retrievedOrder = customerOrderRes.body.order;
+
+      // 5. Assert the order still shows price A (Rs. 250)
+      const retrievedItem = retrievedOrder.items.find((i: any) => i.productId === testProduct.id);
+      expect(retrievedItem.unitPriceSnapshot).toBe(250);
+      expect(retrievedItem.lineTotal).toBe(500);
+
+      // 6. Assert order total and subtotal remain unchanged
+      expect(retrievedOrder.subtotal).toBe(500);
+      expect(retrievedOrder.deliveryFee).toBe(150);
+      expect(retrievedOrder.totalAmount).toBe(650);
+
+      // 7. Retrieve the old order as vendor and verify same invariant
+      const vendorOrderRes = await request(app)
+        .get(`/api/v1/vendor/orders/${placedOrder.id}`)
+        .set('Cookie', vendorA.cookie);
+      expect(vendorOrderRes.status).toBe(200);
+      const vendorRetrievedOrder = vendorOrderRes.body.order;
+      expect(vendorRetrievedOrder.subtotal).toBe(500);
+      expect(vendorRetrievedOrder.totalAmount).toBe(650);
+      expect(vendorRetrievedOrder.items[0].unitPriceSnapshot).toBe(250);
+
+      // 8. Assert current product catalog now has price B (Rs. 350)
+      const currentProductRes = await request(app)
+        .get(`/api/v1/vendor/products/${testProduct.id}`)
+        .set('Cookie', vendorA.cookie);
+      expect(currentProductRes.status).toBe(200);
+      expect(currentProductRes.body.product.price).toBe(350);
+
+      const dbProduct = await prisma.product.findUnique({ where: { id: testProduct.id } });
+      expect(Number(dbProduct?.price)).toBe(350);
+    });
   });
 
   // =========================================================================

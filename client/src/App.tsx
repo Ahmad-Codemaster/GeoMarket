@@ -3,12 +3,15 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
 import { AppLayout } from './components/layout/AppLayout';
+import { GlobalOverlays } from './components/layout/GlobalOverlays';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { UserRole } from '@geomarket/shared';
 
 // Public pages
 import { HomePage } from './pages/public/HomePage';
+import { AboutPage } from './pages/public/AboutPage';
+import { SupportPage } from './pages/public/SupportPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterCustomerPage } from './pages/auth/RegisterCustomerPage';
 import { RegisterVendorPage } from './pages/auth/RegisterVendorPage';
@@ -59,6 +62,8 @@ export function App() {
             {/* Application shell */}
             <Route element={<AppLayout />}>
               {/* Public & Guest-accessible Discovery & Shopping routes */}
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/support" element={<SupportPage />} />
               <Route path="/stores" element={<StoresDiscoveryPage />} />
               <Route path="/stores/:id" element={<StoreDetailPage />} />
               <Route path="/products" element={<ProductsCatalogPage />} />
@@ -102,6 +107,7 @@ export function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
 
+          <GlobalOverlays />
           <Toaster />
         </BrowserRouter>
       </QueryClientProvider>

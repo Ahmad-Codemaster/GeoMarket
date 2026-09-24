@@ -26,42 +26,53 @@ export function StoreCard({ store }: StoreCardProps) {
       : store.storeCategory?.name || 'General';
 
   return (
-    <Card className="flex flex-col justify-between hover:border-primary/50 transition-all hover:shadow-md">
-      <CardHeader className="pb-3 space-y-2.5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1">
-            <h3 className="font-semibold text-lg leading-tight line-clamp-1 group-hover:text-primary">
-              {store.storeName}
-            </h3>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="line-clamp-1">{store.address}, {store.city}</span>
-            </div>
+    <Card className="flex flex-col justify-between hover:border-primary/50 transition-all hover:shadow-md overflow-hidden group">
+      {/* Store Banner Image */}
+      <div className="relative h-32 w-full bg-muted overflow-hidden">
+        {store.imageUrl ? (
+          <img
+            src={store.imageUrl}
+            alt={store.storeName}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-linear-to-br from-primary/10 via-muted to-secondary/25 flex items-center justify-center">
+            <Store className="h-10 w-10 text-muted-foreground/30" />
           </div>
-          <Badge variant="secondary" className="shrink-0 text-xs font-normal">
-            {categoryName}
-          </Badge>
-        </div>
+        )}
 
-        {/* Operating & Acceptance Badges */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+        {/* Store Logo Thumbnail */}
+        {store.logoUrl && (
+          <div className="absolute bottom-2 left-3 h-10 w-10 rounded-lg border-2 border-background bg-card shadow-sm overflow-hidden">
+            <img
+              src={store.logoUrl}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
+
+        <div className="absolute top-2 right-2 flex items-center gap-1.5">
           <Badge
             variant={store.isOpen ? 'success' : 'destructive'}
-            className="text-[11px] gap-1 py-0.5"
+            className="text-[11px] gap-1 py-0.5 shadow-xs"
           >
             <Clock className="h-3 w-3" />
-            {store.isOpen ? 'Open Now' : 'Closed'}
+            {store.isOpen ? 'Open' : 'Closed'}
           </Badge>
+        </div>
+      </div>
 
-          <Badge
-            variant={store.isAcceptingOrders ? 'default' : 'warning'}
-            className="text-[11px] py-0.5"
-          >
-            {store.isAcceptingOrders ? 'Accepting Orders' : 'Orders Paused'}
+      <CardHeader className="p-4 pb-2 space-y-2">
+        {/* Category & Rating Row */}
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <Badge variant="secondary" className="text-[11px] font-medium tracking-wide truncate max-w-[65%]">
+            {categoryName}
           </Badge>
-
           {store.averageRating > 0 && (
-            <Badge variant="outline" className="text-[11px] gap-1 py-0.5">
+            <Badge variant="outline" className="text-[11px] gap-1 py-0.5 shrink-0 font-medium">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
               <span>{store.averageRating.toFixed(1)}</span>
               {store.totalReviews > 0 && (
@@ -69,6 +80,29 @@ export function StoreCard({ store }: StoreCardProps) {
               )}
             </Badge>
           )}
+        </div>
+
+        {/* Store Title & Address */}
+        <div className="space-y-1">
+          <h3 className="font-bold text-base sm:text-lg leading-snug line-clamp-1 text-slate-900 group-hover:text-primary transition-colors" title={store.storeName}>
+            {store.storeName}
+          </h3>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            <span className="truncate" title={`${store.address}, ${store.city}`}>
+              {store.address}, {store.city}
+            </span>
+          </div>
+        </div>
+
+        {/* Operating & Acceptance Badges */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <Badge
+            variant={store.isAcceptingOrders ? 'default' : 'warning'}
+            className="text-[11px] py-0.5"
+          >
+            {store.isAcceptingOrders ? 'Accepting Orders' : 'Orders Paused'}
+          </Badge>
         </div>
       </CardHeader>
 

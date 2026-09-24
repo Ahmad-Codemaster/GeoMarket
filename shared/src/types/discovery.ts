@@ -23,6 +23,8 @@ export interface DiscoveredStoreDto {
   isAcceptingOrders: boolean;
   isOpen: boolean;
   description?: string | null;
+  imageUrl?: string | null;
+  logoUrl?: string | null;
   averageRating: number;
   totalReviews: number;
   timezone?: string;

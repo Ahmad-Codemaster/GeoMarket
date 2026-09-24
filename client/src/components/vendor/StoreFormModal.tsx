@@ -9,6 +9,10 @@ import {
   Compass,
   Check,
   AlertCircle,
+  Upload,
+  Image as ImageIcon,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -26,7 +30,17 @@ import { useReverseGeocode, useForwardGeocode } from '../../hooks/useAddresses';
 import { useStoreCategories } from '../../hooks/useCategories';
 import { useCreateStore, useUpdateStore } from '../../hooks/useStores';
 import { toast } from '../../hooks/useToast';
+import { uploadApi } from '../../lib/api';
 import type { StoreDto, GeocodingResultDto } from '@geomarket/shared';
+
+const PRESET_STORE_COVERS = [
+  { label: 'Supermarket', url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Fresh Bakery', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Grocery Store', url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Artisan Cafe', url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Pharmacy & Care', url: 'https://images.unsplash.com/photo-1586015555751-63c25b39bfdb?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Meat & Butchery', url: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=1200&q=80' },
+];
 
 interface StoreFormModalProps {
   open: boolean;
@@ -90,6 +104,10 @@ export function StoreFormModal({
   const [name, setName] = useState('');
   const [storeCategoryId, setStoreCategoryId] = useState('');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [addressLine, setAddressLine] = useState('');
   const [city, setCity] = useState('');
   const [position, setPosition] = useState<[number, number]>([DEFAULT_LAT, DEFAULT_LON]);
@@ -102,6 +120,74 @@ export function StoreFormModal({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const markerRef = useRef<L.Marker | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Store cover image size cannot exceed 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingCover(true);
+      const res = await uploadApi.uploadImage(file);
+      setImageUrl(res.url);
+      toast({
+        title: 'Cover Image Uploaded',
+        description: 'Store cover image uploaded successfully.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Upload Failed',
+        description: err.message || 'Could not upload cover image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Store logo image size cannot exceed 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingLogo(true);
+      const res = await uploadApi.uploadImage(file);
+      setLogoUrl(res.url);
+      toast({
+        title: 'Logo Uploaded',
+        description: 'Store logo uploaded successfully.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Upload Failed',
+        description: err.message || 'Could not upload store logo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
 
   // Sync state whenever dialog opens or editing store changes
   useEffect(() => {
@@ -114,6 +200,8 @@ export function StoreFormModal({
         setName(store.name || '');
         setStoreCategoryId(store.storeCategoryId || '');
         setDescription(store.description || '');
+        setImageUrl(store.imageUrl || '');
+        setLogoUrl(store.logoUrl || '');
         setAddressLine(store.addressLine || '');
         setCity(store.city || '');
         setPosition([Number(store.latitude) || DEFAULT_LAT, Number(store.longitude) || DEFAULT_LON]);
@@ -124,6 +212,8 @@ export function StoreFormModal({
         setName('');
         setStoreCategoryId(categories[0]?.id || '');
         setDescription('');
+        setImageUrl('');
+        setLogoUrl('');
         setAddressLine('');
         setCity('Faisalabad');
         setPosition([DEFAULT_LAT, DEFAULT_LON]);
@@ -241,6 +331,8 @@ export function StoreFormModal({
             name: name.trim(),
             storeCategoryId,
             description: description.trim() || undefined,
+            imageUrl: imageUrl.trim() || null,
+            logoUrl: logoUrl.trim() || null,
             addressLine: addressLine.trim(),
             city: city.trim(),
             latitude: position[0],
@@ -261,6 +353,8 @@ export function StoreFormModal({
           name: name.trim(),
           storeCategoryId,
           description: description.trim() || undefined,
+          imageUrl: imageUrl.trim() || null,
+          logoUrl: logoUrl.trim() || null,
           addressLine: addressLine.trim(),
           city: city.trim(),
           latitude: position[0],
@@ -356,6 +450,187 @@ export function StoreFormModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+            </div>
+          </div>
+
+          {/* Section: Store Visual Identity & Imagery */}
+          <div className="space-y-4 pt-2 border-t">
+            <div>
+              <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                Store Visual Identity &amp; Imagery
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Upload custom storefront imagery or pick from curated merchant presets.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Cover Banner */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center justify-between">
+                  <span>Store Cover Banner (Recommended: 1200×400)</span>
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="text-[11px] text-destructive hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </Label>
+
+                {imageUrl ? (
+                  <div className="relative h-28 rounded-lg overflow-hidden border border-border group bg-muted">
+                    <img
+                      src={imageUrl}
+                      alt="Store Cover Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="absolute top-1.5 right-1.5 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                      title="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => coverInputRef.current?.click()}
+                    className="h-28 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center gap-1 cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
+                  >
+                    {isUploadingCover ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">Upload Cover Banner</span>
+                        <span className="text-[10px] text-muted-foreground/80">JPG, PNG, WEBP up to 5MB</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  onChange={handleCoverUpload}
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                />
+
+                <Input
+                  placeholder="Or paste image URL (https://...)"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="text-xs h-8"
+                />
+
+                {/* Presets */}
+                <div className="space-y-1">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    Quick Presets:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {PRESET_STORE_COVERS.map((preset) => (
+                      <button
+                        type="button"
+                        key={preset.label}
+                        onClick={() => setImageUrl(preset.url)}
+                        className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                          imageUrl === preset.url
+                            ? 'bg-primary text-primary-foreground border-primary font-semibold'
+                            : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border-border/50'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Store Logo */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center justify-between">
+                  <span>Store Logo / Avatar (Square)</span>
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl('')}
+                      className="text-[11px] text-destructive hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </Label>
+
+                <div className="flex items-center gap-3">
+                  {logoUrl ? (
+                    <div className="relative h-20 w-20 rounded-xl overflow-hidden border border-border shrink-0 bg-muted">
+                      <img
+                        src={logoUrl}
+                        alt="Store Logo Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setLogoUrl('')}
+                        className="absolute top-1 right-1 p-0.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                        title="Remove logo"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => logoInputRef.current?.click()}
+                      className="h-20 w-20 rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center shrink-0 cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors text-muted-foreground"
+                    >
+                      {isUploadingLogo ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      ) : (
+                        <>
+                          <Store className="h-5 w-5" />
+                          <span className="text-[10px] mt-1 font-medium">Upload</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex-1 space-y-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={isUploadingLogo}
+                      className="w-full text-xs h-8 gap-1.5"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>{isUploadingLogo ? 'Uploading…' : 'Choose Logo File'}</span>
+                    </Button>
+                    <Input
+                      placeholder="Or logo URL (https://...)"
+                      value={logoUrl}
+                      onChange={(e) => setLogoUrl(e.target.value)}
+                      className="text-xs h-8"
+                    />
+                  </div>
+                </div>
+
+                <input
+                  type="file"
+                  ref={logoInputRef}
+                  onChange={handleLogoUpload}
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                />
+              </div>
             </div>
           </div>
 

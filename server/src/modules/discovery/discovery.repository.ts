@@ -7,6 +7,8 @@ export interface RawDiscoveredStore {
   store_name: string;
   store_slug: string;
   description: string | null;
+  image_url?: string | null;
+  logo_url?: string | null;
   address: string;
   city: string;
   latitude: number | string;
@@ -100,6 +102,8 @@ export async function findDiscoveredStores(params: DiscoveredStoresQueryParams):
         s.name AS store_name,
         s.slug AS store_slug,
         s.description,
+        s.image_url,
+        s.logo_url,
         s.address_line AS address,
         s.city,
         s.latitude,

@@ -4,9 +4,7 @@ import { requireAuth } from '../../middleware/requireAuth';
 
 const router = Router();
 
-// Location endpoints require an authenticated user
-router.use(requireAuth);
-
+// Geocoding endpoints are public so customers and guests can search addresses and reverse-geocode
 router.post('/reverse', locationController.handleReverseGeocode);
 router.post('/forward', locationController.handleForwardGeocode);
 

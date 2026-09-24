@@ -12,10 +12,17 @@ interface UiStore {
   mobileNavOpen: boolean;
   setMobileNavOpen: (open: boolean) => void;
   toggleMobileNav: () => void;
+  /** Slide-over cart drawer open/closed */
+  cartDrawerOpen: boolean;
+  setCartDrawerOpen: (open: boolean) => void;
+  toggleCartDrawer: () => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
   mobileNavOpen: false,
   setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
   toggleMobileNav: () => set((s) => ({ mobileNavOpen: !s.mobileNavOpen })),
+  cartDrawerOpen: false,
+  setCartDrawerOpen: (open) => set({ cartDrawerOpen: open }),
+  toggleCartDrawer: () => set((s) => ({ cartDrawerOpen: !s.cartDrawerOpen })),
 }));

@@ -470,71 +470,70 @@ export function ProductsCatalogPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {/* Mobile Filter Toggle & Sort Bar */}
-        <div className="flex lg:hidden items-center justify-between gap-3 mb-6 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-xl border-slate-200 text-slate-800 font-semibold"
+      {/* Main Full-Width Content Container */}
+      <div className="flex flex-1 w-full items-start">
+        {/* Desktop Left Sidebar: Attached flush to the left edge of the screen */}
+        <aside className="hidden lg:block w-72 xl:w-80 shrink-0 border-r border-slate-200/80 bg-white p-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+          {renderFilterPanel()}
+        </aside>
+
+        {/* Right Main Content Area: Spans all the way to the right edge */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+          {/* Mobile Filter Toggle & Sort Bar */}
+          <div className="flex lg:hidden items-center justify-between gap-3 mb-6 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-xl border-slate-200 text-slate-800 font-semibold"
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
+                  <span>Filters</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="bg-emerald-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] sm:max-w-md overflow-y-auto">
+                <SheetHeader className="pb-4">
+                  <SheetTitle className="text-left">Filter Catalog</SheetTitle>
+                </SheetHeader>
+                <div className="py-2">
+                  {renderFilterPanel()}
+                </div>
+                <div className="pt-6 mt-4 border-t">
+                  <SheetClose asChild>
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                      Apply Filters ({productsData?.pagination.total ?? 0} results)
+                    </Button>
+                  </SheetClose>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value as any);
+                  setPage(1);
+                }}
+                className="text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
-                <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
-                <span>Filters</span>
-                {activeFiltersCount > 0 && (
-                  <span className="bg-emerald-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[85vw] sm:max-w-md overflow-y-auto">
-              <SheetHeader className="pb-4">
-                <SheetTitle className="text-left">Filter Catalog</SheetTitle>
-              </SheetHeader>
-              <div className="py-2">
-                {renderFilterPanel()}
-              </div>
-              <div className="pt-6 mt-4 border-t">
-                <SheetClose asChild>
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                    Apply Filters ({productsData?.pagination.total ?? 0} results)
-                  </Button>
-                </SheetClose>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as any);
-                setPage(1);
-              }}
-              className="text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            >
-              <option value="newest">Newest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="name_asc">Name: A to Z</option>
-            </select>
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="name_asc">Name: A to Z</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        {/* ─── Main Two-Column Layout ────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row items-start gap-8">
-          {/* Left Vertical Sidebar on Desktop */}
-          <aside className="hidden lg:block w-72 shrink-0 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs sticky top-20">
-            {renderFilterPanel()}
-          </aside>
-
-          {/* Right Main Content Area */}
-          <main className="flex-1 min-w-0 w-full space-y-6">
-            {/* Top Toolbar: Results count, Active filter tags, Sort dropdown */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
+          {/* Top Toolbar: Results count, Active filter tags, Sort dropdown */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="text-sm text-slate-600">
                   Showing <strong className="text-slate-900">{productsData?.pagination.total ?? 0}</strong> products
@@ -670,7 +669,7 @@ export function ProductsCatalogPage() {
               />
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                   {productsData.products.map((product) => {
                     const isOutOfStock = product.stockQuantity <= 0;
 
@@ -784,7 +783,6 @@ export function ProductsCatalogPage() {
             )}
           </main>
         </div>
-      </div>
     </div>
   );
 }

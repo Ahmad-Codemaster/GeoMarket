@@ -33,6 +33,8 @@ export interface StoreDto {
   name: string;
   slug: string;
   description: string | null;
+  imageUrl?: string | null;
+  logoUrl?: string | null;
   addressLine: string;
   city: string;
   latitude: number;
@@ -67,6 +69,8 @@ export interface CreateStoreDto {
   name: string;
   storeCategoryId: string;
   description?: string;
+  imageUrl?: string | null;
+  logoUrl?: string | null;
   addressLine: string;
   city: string;
   latitude: number;
@@ -80,6 +84,8 @@ export interface UpdateStoreDto {
   name?: string;
   storeCategoryId?: string;
   description?: string;
+  imageUrl?: string | null;
+  logoUrl?: string | null;
   addressLine?: string;
   city?: string;
   latitude?: number;

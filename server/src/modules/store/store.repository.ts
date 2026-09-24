@@ -20,6 +20,8 @@ export async function createStore(
     slug: string;
     storeCategoryId: string;
     description?: string | null;
+    imageUrl?: string | null;
+    logoUrl?: string | null;
     addressLine: string;
     city: string;
     latitude: number;
@@ -39,6 +41,8 @@ export async function createStore(
       name: data.name,
       slug: data.slug,
       description: data.description ?? null,
+      imageUrl: data.imageUrl ?? null,
+      logoUrl: data.logoUrl ?? null,
       addressLine: data.addressLine,
       city: data.city,
       latitude: data.latitude,
@@ -105,6 +109,8 @@ export async function updateStore(
     slug: string;
     storeCategoryId: string;
     description: string | null;
+    imageUrl: string | null;
+    logoUrl: string | null;
     addressLine: string;
     city: string;
     latitude: number;

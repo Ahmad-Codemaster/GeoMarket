@@ -19,6 +19,7 @@ import {
   Printer,
   Sparkles,
   Phone,
+  RotateCw,
 } from 'lucide-react';
 import { PageContainer, PageHeader } from '../../components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -65,7 +66,14 @@ export function OrderDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: order, isLoading, isError } = useCustomerOrder(orderId || '');
+  const {
+    data: order,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    dataUpdatedAt,
+  } = useCustomerOrder(orderId || '');
   const cancelMutation = useCancelCustomerOrder();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
@@ -282,51 +290,148 @@ export function OrderDetailPage() {
       </div>
 
       {/* Progress Tracker */}
-      <Card className="mt-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Order Progress & Status</CardTitle>
+      <Card className="mt-6 border-slate-200/80 shadow-xs">
+        <CardHeader className="pb-4 flex flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-sm font-bold text-slate-900">Order Progress & Status</CardTitle>
+            {dataUpdatedAt > 0 && (
+              <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                Last checked: {new Date(dataUpdatedAt).toLocaleTimeString()}
+              </CardDescription>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs rounded-lg border-slate-200 hover:bg-slate-50 shrink-0"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            title="Check for status updates"
+          >
+            <RotateCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin text-primary' : 'text-slate-600'}`} />
+            <span className="hidden sm:inline">{isFetching ? 'Checking...' : 'Refresh Status'}</span>
+          </Button>
         </CardHeader>
         <CardContent>
           {isCancelled ? (
-            <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center gap-3">
-              <XCircle className="h-5 w-5 text-destructive shrink-0" />
+            <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-3">
+              <XCircle className="h-6 w-6 text-destructive shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-destructive">Order Cancelled</p>
+                <p className="text-sm font-bold text-destructive">Order Cancelled</p>
                 <p className="text-xs text-muted-foreground">
-                  This order was cancelled.
+                  This order was cancelled and will not be prepared or delivered.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-              {ORDER_STEPS.map((step, idx) => {
-                const isCompleted = idx <= currentStepIndex;
-                const isCurrent = idx === currentStepIndex;
+            <div className="py-2">
+              {/* Desktop / Tablet Connected Stepper */}
+              <div className="hidden sm:block relative">
+                {/* Connecting lines container */}
+                <div className="absolute top-5 left-10 right-10 h-0.5 bg-slate-200 -z-0" />
+                <div
+                  className="absolute top-5 left-10 h-0.5 bg-emerald-600 transition-all duration-500 -z-0"
+                  style={{
+                    width: currentStepIndex > 0
+                      ? `calc(${((Math.min(currentStepIndex, ORDER_STEPS.length - 1)) / (ORDER_STEPS.length - 1)) * 100}% - 40px)`
+                      : '0%',
+                  }}
+                />
 
-                return (
-                  <div
-                    key={step}
-                    className={`flex flex-col items-center text-center p-2.5 rounded-xl border transition-all ${
-                      isCurrent
-                        ? 'border-primary bg-primary/10 shadow-sm font-semibold'
-                        : isCompleted
-                        ? 'border-border bg-muted/40 text-foreground'
-                        : 'border-dashed border-border/50 text-muted-foreground/60'
-                    }`}
-                  >
+                <div className="grid grid-cols-6 gap-2 relative z-10">
+                  {ORDER_STEPS.map((step, idx) => {
+                    const isCompleted = idx < currentStepIndex;
+                    const isCurrent = idx === currentStepIndex;
+                    const isUpcoming = idx > currentStepIndex;
+
+                    return (
+                      <div key={step} className="flex flex-col items-center text-center">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                            isCompleted
+                              ? 'bg-emerald-600 text-white shadow-sm ring-4 ring-emerald-50'
+                              : isCurrent
+                              ? 'bg-primary text-primary-foreground shadow-md ring-4 ring-primary/20'
+                              : 'bg-white border-2 border-slate-200 text-slate-400'
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5 text-white" />
+                          ) : isCurrent ? (
+                            <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                          ) : (
+                            <span>{idx + 1}</span>
+                          )}
+                        </div>
+
+                        <span
+                          className={`text-xs font-semibold mt-2.5 leading-tight ${
+                            isCurrent
+                              ? 'text-primary font-bold'
+                              : isCompleted
+                              ? 'text-slate-900'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          {STEP_LABELS[step]}
+                        </span>
+
+                        {isCurrent && (
+                          <Badge variant="default" className="mt-1 text-[9px] px-1.5 py-0 uppercase tracking-wider font-bold">
+                            Current Status
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mobile Vertical Stepper */}
+              <div className="sm:hidden space-y-3">
+                {ORDER_STEPS.map((step, idx) => {
+                  const isCompleted = idx < currentStepIndex;
+                  const isCurrent = idx === currentStepIndex;
+                  const isUpcoming = idx > currentStepIndex;
+
+                  return (
                     <div
-                      className={`h-7 w-7 rounded-full flex items-center justify-center text-xs mb-1.5 ${
-                        isCompleted
-                          ? 'bg-primary text-primary-foreground font-bold'
-                          : 'bg-muted text-muted-foreground'
+                      key={step}
+                      className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${
+                        isCurrent ? 'bg-primary/5 border border-primary/20' : ''
                       }`}
                     >
-                      {idx + 1}
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                          isCompleted
+                            ? 'bg-emerald-600 text-white'
+                            : isCurrent
+                            ? 'bg-primary text-primary-foreground ring-2 ring-primary/20'
+                            : 'bg-slate-100 border border-slate-200 text-slate-400'
+                        }`}
+                      >
+                        {isCompleted ? <CheckCircle2 className="w-4 h-4 text-white" /> : idx + 1}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className={`text-xs font-medium ${
+                            isCurrent ? 'text-primary font-bold' : isCompleted ? 'text-slate-900' : 'text-slate-400'
+                          }`}
+                        >
+                          {STEP_LABELS[step]}
+                        </span>
+                      </div>
+
+                      {isCurrent && (
+                        <Badge variant="default" className="text-[10px] px-2 py-0">
+                          Active
+                        </Badge>
+                      )}
                     </div>
-                    <span className="text-[11px] leading-tight">{STEP_LABELS[step]}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </CardContent>

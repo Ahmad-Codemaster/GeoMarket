@@ -216,7 +216,34 @@ export function StoreDetailPage() {
 
         {/* Store Header Card */}
         <Card className="overflow-hidden border-border/80 shadow-2xs">
-          <div className="p-6 md:p-8 space-y-4">
+          {/* Store Cover Banner */}
+          <div className="relative h-44 sm:h-56 md:h-64 w-full bg-muted overflow-hidden">
+            {store.imageUrl ? (
+              <img
+                src={store.imageUrl}
+                alt={store.storeName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-linear-to-r from-primary/15 via-muted to-secondary/30 flex items-center justify-center">
+                <Store className="h-16 w-16 text-muted-foreground/30" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-linear-to-t from-background/70 via-transparent to-transparent pointer-events-none" />
+          </div>
+
+          <div className="p-6 md:p-8 space-y-4 relative">
+            {/* Store Logo Avatar overlapping banner */}
+            {store.logoUrl && (
+              <div className="-mt-16 sm:-mt-20 mb-2 relative h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-card bg-card shadow-md overflow-hidden shrink-0">
+                <img
+                  src={store.logoUrl}
+                  alt={`${store.storeName} logo`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -271,6 +298,15 @@ export function StoreDetailPage() {
 
             {/* Store Fulfillment Parameters */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t text-xs">
+              {typeof store.distanceKm === 'number' && (
+                <div className="space-y-0.5">
+                  <span className="text-muted-foreground">Distance:</span>
+                  <p className="font-semibold text-foreground flex items-center gap-1">
+                    <Navigation className="h-3.5 w-3.5 text-primary" />
+                    {store.distanceKm.toFixed(1)} km away
+                  </p>
+                </div>
+              )}
               <div className="space-y-0.5">
                 <span className="text-muted-foreground">Delivery Radius:</span>
                 <p className="font-semibold text-foreground">

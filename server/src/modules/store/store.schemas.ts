@@ -23,6 +23,12 @@ function normalizeStoreInput(arg: any) {
     if (copy.is_accepting_orders !== undefined && copy.isAcceptingOrders === undefined) {
       copy.isAcceptingOrders = copy.is_accepting_orders;
     }
+    if (copy.image_url !== undefined && copy.imageUrl === undefined) {
+      copy.imageUrl = copy.image_url;
+    }
+    if (copy.logo_url !== undefined && copy.logoUrl === undefined) {
+      copy.logoUrl = copy.logo_url;
+    }
     // Strictly strip vendor attempts to set status or is_active
     delete copy.status;
     delete copy.isActive;
@@ -47,6 +53,8 @@ export const createStoreSchema = z.preprocess(
     name: z.string().trim().min(2, 'Name must be at least 2 characters').max(255),
     storeCategoryId: z.string().uuid('Invalid store category ID'),
     description: z.string().trim().optional().nullable(),
+    imageUrl: z.string().trim().max(1000, 'Image URL cannot exceed 1000 characters').optional().nullable(),
+    logoUrl: z.string().trim().max(1000, 'Logo URL cannot exceed 1000 characters').optional().nullable(),
     addressLine: z.string().trim().min(5, 'Address line must be at least 5 characters').max(500),
     city: z.string().trim().min(2, 'City must be at least 2 characters').max(100),
     latitude: z.number().min(-90).max(90),
@@ -70,6 +78,8 @@ export const updateStoreSchema = z.preprocess(
     name: z.string().trim().min(2, 'Name must be at least 2 characters').max(255).optional(),
     storeCategoryId: z.string().uuid('Invalid store category ID').optional(),
     description: z.string().trim().optional().nullable(),
+    imageUrl: z.string().trim().max(1000, 'Image URL cannot exceed 1000 characters').optional().nullable(),
+    logoUrl: z.string().trim().max(1000, 'Logo URL cannot exceed 1000 characters').optional().nullable(),
     addressLine: z.string().trim().min(5, 'Address line must be at least 5 characters').max(500).optional(),
     city: z.string().trim().min(2, 'City must be at least 2 characters').max(100).optional(),
     latitude: z.number().min(-90).max(90).optional(),

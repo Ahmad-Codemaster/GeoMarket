@@ -386,10 +386,14 @@ export function LocationPickerModal({
               size="sm"
               type="button"
               onClick={() => {
+                const readableLabel = addressLine.trim()
+                  ? (city.trim() ? `${addressLine.trim()}, ${city.trim()}` : addressLine.trim())
+                  : (addressLabel.trim() || 'Selected Location');
+
                 onSelectCoordinates({
                   latitude: position[0],
                   longitude: position[1],
-                  label: addressLabel.trim() || 'Selected Pin',
+                  label: readableLabel,
                   addressLine: addressLine.trim() || undefined,
                   city: city.trim() || undefined,
                 });
@@ -398,7 +402,7 @@ export function LocationPickerModal({
               className="gap-1.5"
             >
               <Compass className="h-4 w-4" />
-              Use This Pin
+              Use This Location
             </Button>
           )}
           <Button

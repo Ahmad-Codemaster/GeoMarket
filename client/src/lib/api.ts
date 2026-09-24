@@ -43,7 +43,7 @@ import type {
   AnalyticsPeriod,
 } from '@geomarket/shared';
 
-const BASE = '/api/v1';
+const BASE = `${((import.meta as any).env?.VITE_API_URL as string) || ''}/api/v1`;
 
 export class ApiError extends Error {
   constructor(

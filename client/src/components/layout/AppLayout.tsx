@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
+import { Footer } from './Footer';
 
 /**
- * AppLayout — the authenticated shell.
- * Renders the sticky header and the page content below.
- * All authenticated routes (CUSTOMER / VENDOR / ADMIN) use this layout.
+ * AppLayout — the application shell.
+ * Renders the sticky header, page content, and footer.
  */
 export function AppLayout() {
   return (
@@ -13,6 +13,7 @@ export function AppLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }
