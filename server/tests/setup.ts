@@ -140,6 +140,9 @@ const MIGRATION_STATEMENTS = [
 ];
 
 beforeAll(async () => {
+  if (process.env.SKIP_DB_SETUP === 'true') {
+    return;
+  }
   for (const stmt of MIGRATION_STATEMENTS) {
     try {
       await prisma.$executeRawUnsafe(stmt);

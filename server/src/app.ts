@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -9,14 +10,30 @@ import apiRouter from './routes/index';
 export function createApp() {
   const app = express();
 
+  app.disable('x-powered-by');
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    })
+  );
+
   // CORS: allow configured origin, or dynamic origin in development for live tunnels (ngrok, cloudflare)
   const allowedOrigins = env.CLIENT_ORIGIN.split(',').map((o) => o.trim());
-  const allowAllOrigins = allowedOrigins.includes('*');
 
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || env.NODE_ENV !== 'production' || allowAllOrigins || allowedOrigins.includes(origin)) {
+        // Same-origin or non-browser tools (no origin header)
+        if (!origin) {
+          return callback(null, true);
+        }
+        // Development and test modes: permit local dev tools and tunnels
+        if (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') {
+          return callback(null, true);
+        }
+        // Production: strict origin check against allowed origins
+        if (allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
         return callback(new Error('Not allowed by CORS'));
