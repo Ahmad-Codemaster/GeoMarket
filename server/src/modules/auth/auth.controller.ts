@@ -3,12 +3,12 @@ import { registerCustomerSchema, registerVendorSchema, loginSchema, guestSession
 import * as authService from './auth.service';
 import { env } from '../../config/env';
 
-function getCookieOptions() {
+export function getCookieOptions() {
   const isProd = env.NODE_ENV === 'production';
   return {
     httpOnly: true,
     secure: isProd || env.COOKIE_SECURE,
-    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: 'lax' as const,
     path: '/',
     maxAge: env.JWT_EXPIRES_IN * 1000, // milliseconds
   };
