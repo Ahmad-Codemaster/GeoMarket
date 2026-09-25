@@ -1,0 +1,45 @@
+services:
+  # ── Backend (Web Service) ──────────────────────────────────────────────────
+  - type: web
+    name: geomarket
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter server build
+    startCommand: pnpm --filter server start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: "3600"
+      - key: CLIENT_ORIGIN
+        value: https://geomarket-1.onrender.com
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: MAX_DELIVERY_RADIUS_KM
+        value: "500"
+      - key: PORT
+        value: "3001"
+
+  # ── Frontend (Static Site) ─────────────────────────────────────────────────
+  - type: web
+    name: geomarket-1
+    runtime: static
+    plan: free
+    region: singapore
+    rootDir: client
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://geomarket.onrender.com
+    routes:
+      # SPA catch-all: serve index.html for every route React Router handles
+      - type: rewrite
+        source: /*
+        destination: /index.html
