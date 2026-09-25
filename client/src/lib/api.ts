@@ -58,20 +58,15 @@ const BASE = `${getApiBaseUrl()}/api/v1`;
 const TOKEN_STORAGE_KEY = 'geomarket_auth_token';
 
 export function getStoredToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  // Tokens are managed strictly via HttpOnly, SameSite=lax cookies for security.
+  // localStorage token storage is disabled to prevent XSS-based credential exfiltration.
+  return null;
 }
 
-export function setStoredToken(token: string | null): void {
+export function setStoredToken(_token: string | null): void {
+  // Cleanup any legacy token from localStorage to prevent credential leakage
   try {
-    if (token) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    } else {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-    }
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch {}
 }
 
@@ -88,10 +83,8 @@ export class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getStoredToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(init?.headers as Record<string, string> | undefined),
   };
 
