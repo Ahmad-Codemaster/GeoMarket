@@ -44,15 +44,13 @@ import type {
 } from '@geomarket/shared';
 
 function getApiBaseUrl(): string {
+  // In development, point to local Express server.
+  // In Docker production, frontend and API share the same origin — use relative URLs.
   const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
   if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  // Automatically connect to the backend service on Render
-  if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
-    return 'https://geomarket.onrender.com';
-  }
-  return '';
+  return ''; // same-origin: /api/v1/... resolves correctly in production
 }
 
 const BASE = `${getApiBaseUrl()}/api/v1`;
