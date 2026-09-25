@@ -49,6 +49,9 @@ COPY server/package.json ./server/
 # Install production deps only
 RUN pnpm install --frozen-lockfile --prod
 
+# Copy built shared package
+COPY --from=build-shared /app/shared/dist ./shared/dist
+
 # Copy built server
 COPY --from=build-server /app/server/dist ./server/dist
 COPY --from=build-server /app/server/prisma ./server/prisma
