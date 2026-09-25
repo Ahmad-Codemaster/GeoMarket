@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/.pnpm-store
+**/dist
+client/.env
+server/.env
+server/.env.test
+*.log
+.DS_Store
+cloudflared*
+server/public/uploads/*
+!server/public/uploads/.gitkeep
