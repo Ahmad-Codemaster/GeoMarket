@@ -42,20 +42,30 @@ export function createApp() {
     return res.status(200).send('OK');
   });
 
-  // Root status endpoint
-  app.get('/', (_req, res) => {
-    return res.json({
-      name: 'GeoMarket API',
-      status: 'running',
-      version: '1.0.0',
-      frontendUrl: env.CLIENT_ORIGIN,
-      healthCheck: '/api/v1/health',
-      message: 'GeoMarket Backend API is running. Visit the frontend application at ' + env.CLIENT_ORIGIN,
-    });
-  });
-
   // Mount all API routes under /api/v1
   app.use('/api/v1', apiRouter);
+
+  // Serve React build (populated during Docker multi-stage build)
+  const clientDistDir = path.resolve(__dirname, '../public/client');
+  if (fs.existsSync(clientDistDir)) {
+    app.use(express.static(clientDistDir));
+
+    // SPA catch-all: any non-API, non-file route → React's index.html
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(clientDistDir, 'index.html'));
+    });
+  } else {
+    // Development fallback: no built client present
+    app.get('/', (_req, res) => {
+      res.json({
+        name: 'GeoMarket API',
+        status: 'running',
+        version: '1.0.0',
+        note: 'Run client separately with `pnpm dev:client` in development.',
+        healthCheck: '/api/v1/health',
+      });
+    });
+  }
 
   // Global error handler
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
