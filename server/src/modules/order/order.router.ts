@@ -3,11 +3,12 @@ import { requireAuth } from '../../middleware/requireAuth';
 import { requireRole } from '../../middleware/requireRole';
 import { UserRole } from '@geomarket/shared';
 import * as orderController from './order.controller';
+import { orderLookupLimiter } from '../../middleware/rateLimiter';
 
 const router = Router();
 
 // Public Guest Order Tracking / Lookup
-router.post('/lookup', orderController.lookupGuestOrder);
+router.post('/lookup', orderLookupLimiter, orderController.lookupGuestOrder);
 
 // Customer Orders are strictly customer-scoped
 router.use(requireAuth);
