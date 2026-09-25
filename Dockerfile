@@ -2,6 +2,7 @@
 
 # ── Stage 1: Install all dependencies ─────────────────────────────────────────
 FROM node:22-alpine AS deps
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Install pnpm globally (same version as packageManager field)
@@ -35,6 +36,7 @@ RUN pnpm --filter @geomarket/server build
 
 # ── Stage 5: Production image ─────────────────────────────────────────────────
 FROM node:22-alpine AS runner
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
