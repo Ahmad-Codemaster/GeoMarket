@@ -7,7 +7,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   CLIENT_ORIGIN: z
     .string()
-    .min(1, 'CLIENT_ORIGIN cannot be empty')
+    .default('https://geomarket.onrender.com')
     .transform((val) => {
       return val
         .split(',')
