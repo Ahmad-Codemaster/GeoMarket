@@ -45,6 +45,11 @@ export function createApp() {
   // Mount all API routes under /api/v1
   app.use('/api/v1', apiRouter);
 
+  // Catch 404s for API routes so they return JSON rather than SPA index.html
+  app.use('/api/v1', (_req, res) => {
+    return res.status(404).json({ error: 'API route not found' });
+  });
+
   // Serve React build (populated during Docker multi-stage build)
   const clientDistDir = path.resolve(__dirname, '../public/client');
   if (fs.existsSync(clientDistDir)) {

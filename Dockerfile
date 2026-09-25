@@ -43,6 +43,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY pnpm-workspace.yaml ./
 COPY package.json pnpm-lock.yaml ./
 COPY shared/package.json ./shared/
+COPY client/package.json ./client/
 COPY server/package.json ./server/
 
 # Install production deps only
