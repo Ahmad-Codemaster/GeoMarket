@@ -15,64 +15,71 @@ export interface IMapTileProvider {
 }
 
 /**
- * CartoDB Voyager Tile Provider (Default)
- * High-performance, CDN-cached, modern map tiles for e-commerce and delivery maps.
- * Never blocked with 403 Forbidden.
+ * Humanitarian OpenStreetMap (HOT) Tile Provider (Default)
+ * Free community tile service hosted by OpenStreetMap France.
+ * - NO API key required.
+ * - NO watermarks ("get api" notices).
+ * - NO 403 Forbidden blocks.
+ * - Clear street names, landmarks, and rich color contrast.
  */
-export class CartoTileProvider implements IMapTileProvider {
-  readonly name = 'CartoDB Voyager';
+export class OsmHotTileProvider implements IMapTileProvider {
+  readonly name = 'OpenStreetMap Humanitarian';
 
   getTileConfig(): MapTileConfigDto {
     return {
-      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      urlTemplate: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-      subdomains: ['a', 'b', 'c', 'd'],
-      maxZoom: 20,
-      minZoom: 1,
-    };
-  }
-}
-
-/**
- * CartoDB Positron (Light) Tile Provider
- */
-export class CartoPositronTileProvider implements IMapTileProvider {
-  readonly name = 'CartoDB Positron';
-
-  getTileConfig(): MapTileConfigDto {
-    return {
-      urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-      subdomains: ['a', 'b', 'c', 'd'],
-      maxZoom: 20,
-      minZoom: 1,
-    };
-  }
-}
-
-/**
- * OpenStreetMap Tile Provider
- * Note: tile.openstreetmap.org often returns HTTP 403 Forbidden to deployed web applications.
- */
-export class OpenStreetMapTileProvider implements IMapTileProvider {
-  readonly name = 'OpenStreetMap';
-
-  getTileConfig(): MapTileConfigDto {
-    return {
-      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank" rel="noreferrer">Humanitarian OSM Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank" rel="noreferrer">OSM France</a>',
       subdomains: ['a', 'b', 'c'],
       maxZoom: 19,
-      minZoom: 3,
+      minZoom: 1,
     };
   }
 }
 
 /**
- * Mapbox Custom Vector/Raster Tile Provider
+ * OpenStreetMap France Standard Tile Provider
+ * Free community tile service hosted by OpenStreetMap France without 403 blocks.
+ */
+export class OsmFranceTileProvider implements IMapTileProvider {
+  readonly name = 'OpenStreetMap France';
+
+  getTileConfig(): MapTileConfigDto {
+    return {
+      urlTemplate: 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://openstreetmap.fr/" target="_blank" rel="noreferrer">OSM France</a>',
+      subdomains: ['a', 'b', 'c'],
+      maxZoom: 20,
+      minZoom: 1,
+    };
+  }
+}
+
+/**
+ * ESRI World Street Map Provider
+ * Clean, professional, high-performance global street map tiles.
+ * - NO API key required.
+ * - NO watermarks.
+ * - Fast global CDN.
+ */
+export class EsriStreetTileProvider implements IMapTileProvider {
+  readonly name = 'ESRI World Street Map';
+
+  getTileConfig(): MapTileConfigDto {
+    return {
+      urlTemplate:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      attribution:
+        'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, TomTom',
+      maxZoom: 19,
+      minZoom: 1,
+    };
+  }
+}
+
+/**
+ * Mapbox Custom Tile Provider (Optional, requires VITE_MAPBOX_TOKEN)
  */
 export class MapboxTileProvider implements IMapTileProvider {
   readonly name = 'Mapbox';
@@ -86,8 +93,8 @@ export class MapboxTileProvider implements IMapTileProvider {
 
   getTileConfig(): MapTileConfigDto {
     if (!this.token) {
-      // Fallback to CartoDB Voyager if Mapbox token is absent
-      return new CartoTileProvider().getTileConfig();
+      // Fallback to OSM HOT if Mapbox token is absent
+      return new OsmHotTileProvider().getTileConfig();
     }
 
     return {
@@ -107,14 +114,15 @@ export function getActiveMapTileProvider(): IMapTileProvider {
   switch (providerKey) {
     case 'mapbox':
       return new MapboxTileProvider();
-    case 'positron':
-      return new CartoPositronTileProvider();
-    case 'osm':
-      return new OpenStreetMapTileProvider();
-    case 'carto':
-    case 'voyager':
+    case 'esri':
+      return new EsriStreetTileProvider();
+    case 'osmfr':
+    case 'france':
+      return new OsmFranceTileProvider();
+    case 'hot':
+    case 'osm_hot':
     default:
-      // Default to CartoDB Voyager (avoids OSM 403 Forbidden blocks)
-      return new CartoTileProvider();
+      // Default to OSM Humanitarian (HOT): 100% free, no API key, no watermarks, no 403 blocks
+      return new OsmHotTileProvider();
   }
 }
