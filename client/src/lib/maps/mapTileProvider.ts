@@ -14,6 +14,48 @@ export interface IMapTileProvider {
   getTileConfig(): MapTileConfigDto;
 }
 
+/**
+ * CartoDB Voyager Tile Provider (Default)
+ * High-performance, CDN-cached, modern map tiles for e-commerce and delivery maps.
+ * Never blocked with 403 Forbidden.
+ */
+export class CartoTileProvider implements IMapTileProvider {
+  readonly name = 'CartoDB Voyager';
+
+  getTileConfig(): MapTileConfigDto {
+    return {
+      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+      subdomains: ['a', 'b', 'c', 'd'],
+      maxZoom: 20,
+      minZoom: 1,
+    };
+  }
+}
+
+/**
+ * CartoDB Positron (Light) Tile Provider
+ */
+export class CartoPositronTileProvider implements IMapTileProvider {
+  readonly name = 'CartoDB Positron';
+
+  getTileConfig(): MapTileConfigDto {
+    return {
+      urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+      subdomains: ['a', 'b', 'c', 'd'],
+      maxZoom: 20,
+      minZoom: 1,
+    };
+  }
+}
+
+/**
+ * OpenStreetMap Tile Provider
+ * Note: tile.openstreetmap.org often returns HTTP 403 Forbidden to deployed web applications.
+ */
 export class OpenStreetMapTileProvider implements IMapTileProvider {
   readonly name = 'OpenStreetMap';
 
@@ -21,7 +63,7 @@ export class OpenStreetMapTileProvider implements IMapTileProvider {
     return {
       urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
       subdomains: ['a', 'b', 'c'],
       maxZoom: 19,
       minZoom: 3,
@@ -29,6 +71,9 @@ export class OpenStreetMapTileProvider implements IMapTileProvider {
   }
 }
 
+/**
+ * Mapbox Custom Vector/Raster Tile Provider
+ */
 export class MapboxTileProvider implements IMapTileProvider {
   readonly name = 'Mapbox';
   private readonly token: string;
@@ -41,8 +86,8 @@ export class MapboxTileProvider implements IMapTileProvider {
 
   getTileConfig(): MapTileConfigDto {
     if (!this.token) {
-      // Fallback to OSM if token is absent
-      return new OpenStreetMapTileProvider().getTileConfig();
+      // Fallback to CartoDB Voyager if Mapbox token is absent
+      return new CartoTileProvider().getTileConfig();
     }
 
     return {
@@ -62,8 +107,14 @@ export function getActiveMapTileProvider(): IMapTileProvider {
   switch (providerKey) {
     case 'mapbox':
       return new MapboxTileProvider();
+    case 'positron':
+      return new CartoPositronTileProvider();
     case 'osm':
-    default:
       return new OpenStreetMapTileProvider();
+    case 'carto':
+    case 'voyager':
+    default:
+      // Default to CartoDB Voyager (avoids OSM 403 Forbidden blocks)
+      return new CartoTileProvider();
   }
 }

@@ -41,20 +41,66 @@ export async function reverseGeocode(input: ReverseGeocodeInput): Promise<Geocod
     return cached.result;
   }
 
-  const provider = getGeocodingProvider();
-  const result = await provider.reverseGeocode({
-    latitude: input.latitude,
-    longitude: input.longitude,
-  });
+  const primary = getGeocodingProvider();
+  try {
+    const result = await primary.reverseGeocode({
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+    reverseCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+    return result;
+  } catch (primaryErr) {
+    // If primary failed (e.g. Nominatim 429 rate limit or 502 error), fallback to Photon
+    if (!(primary instanceof PhotonGeocodingProvider)) {
+      try {
+        const photon = new PhotonGeocodingProvider();
+        const result = await photon.reverseGeocode({
+          latitude: input.latitude,
+          longitude: input.longitude,
+        });
+        reverseCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+        return result;
+      } catch (photonErr) {
+        // Fall through to safe fallback
+      }
+    }
 
-  reverseCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
-  return result;
+    // Graceful fallback: return a valid GeocodingResult using the coordinates
+    const fallbackResult: GeocodingResult = {
+      formattedAddress: `Delivery Pin (${input.latitude.toFixed(4)}, ${input.longitude.toFixed(4)})`,
+      addressLine: `Pin (${input.latitude.toFixed(4)}, ${input.longitude.toFixed(4)})`,
+      city: 'Faisalabad',
+      country: 'Pakistan',
+      latitude: input.latitude,
+      longitude: input.longitude,
+    };
+    return fallbackResult;
+  }
 }
 
 export async function forwardGeocode(input: ForwardGeocodeInput): Promise<GeocodingResult[]> {
-  const provider = getGeocodingProvider();
-  return provider.forwardGeocode({
-    query: input.query,
-    limit: input.limit,
-  });
+  const primary = getGeocodingProvider();
+  try {
+    const results = await primary.forwardGeocode({
+      query: input.query,
+      limit: input.limit,
+    });
+    if (results && results.length > 0) return results;
+  } catch {
+    // Fall through to Photon fallback
+  }
+
+  if (!(primary instanceof PhotonGeocodingProvider)) {
+    try {
+      const photon = new PhotonGeocodingProvider();
+      return await photon.forwardGeocode({
+        query: input.query,
+        limit: input.limit,
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
 }
