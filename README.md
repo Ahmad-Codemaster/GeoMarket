@@ -147,4 +147,4 @@ Detailed architectural specifications, system diagrams, and academic viva prepar
 ---
 
 ## 📄 License
-Private repository. All rights reserved.
+© [@Ahmad-Codemaster](https://github.com/Ahmad-Codemaster). All rights reserved.
