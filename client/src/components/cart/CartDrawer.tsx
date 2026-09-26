@@ -210,7 +210,7 @@ export function CartDrawer() {
               </div>
 
               <p className="text-[11px] text-center text-slate-400 font-medium">
-                ⚡ Cash on Delivery • Doorstep delivery in ~25 Mins
+                ✓ Cash on Delivery • Direct Doorstep Delivery
               </p>
             </div>
           )}

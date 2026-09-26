@@ -103,7 +103,7 @@ export function Interactive3DHero() {
         <div className="grid grid-cols-3 gap-2 pt-3.5 mt-2 text-center border-t border-border/40">
           <div className="p-2 rounded-lg bg-background/60 border text-center">
             <p className="text-[10px] text-muted-foreground">Dispatch</p>
-            <p className="text-xs font-bold text-foreground">~25 Mins</p>
+            <p className="text-xs font-bold text-foreground">Fast &amp; Direct</p>
           </div>
           <div className="p-2 rounded-lg bg-background/60 border text-center">
             <p className="text-[10px] text-muted-foreground">Payment</p>

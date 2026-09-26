@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User as UserIcon, LayoutDashboard, Store, ShieldCheck, Package, MapPin, Truck, AlertTriangle } from 'lucide-react';
+import { LogOut, Settings, User as UserIcon, LayoutDashboard, Store, ShieldCheck, Package, MapPin, Truck, AlertTriangle, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,12 +48,83 @@ export function UserMenu({ user }: UserMenuProps) {
   const logoutMutation = useLogout();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  const isGuest = (user as any)?.isGuest;
+
   const handleLogout = async () => {
     setConfirmOpen(false);
     await logoutMutation.mutateAsync();
     toast({ title: 'Signed out', description: 'See you next time!', variant: 'default' });
     navigate('/login');
   };
+
+  if (isGuest) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center gap-1.5 bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-xl transition-all text-xs font-bold text-slate-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+            <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Guest</span>
+            <ChevronDown className="w-3 h-3 text-slate-400" />
+          </button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-64 p-2">
+          <DropdownMenuLabel className="font-normal pb-1">
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-slate-900">Guest Session</p>
+                <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
+                  Active
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-snug">
+                Log in to permanently save your cart and delivery addresses.
+              </p>
+            </div>
+          </DropdownMenuLabel>
+
+          <div className="grid grid-cols-2 gap-2 my-2 px-1">
+            <Button
+              size="sm"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8"
+              onClick={() => navigate('/login')}
+            >
+              Log In
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full font-bold text-xs h-8 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => navigate('/register')}
+            >
+              Sign Up
+            </Button>
+          </div>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => navigate('/dashboard')} className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4 text-emerald-600" />
+              Guest Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/addresses')} className="cursor-pointer">
+              <MapPin className="mr-2 h-4 w-4 text-emerald-600" />
+              Delivery Locations
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/orders/track')} className="cursor-pointer">
+              <Package className="mr-2 h-4 w-4 text-emerald-600" />
+              Track Order
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/stores')} className="cursor-pointer">
+              <Store className="mr-2 h-4 w-4 text-emerald-600" />
+              Discover Stores
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
   return (
     <>

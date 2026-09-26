@@ -84,8 +84,7 @@ export function CustomerProfilePage() {
             <div className="rounded-lg border border-dashed p-6 text-center space-y-2">
               <p className="text-sm font-medium">No saved addresses yet</p>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Customer delivery address management with coordinates, geocoded labels, and PostGIS
-                proximity indexing will be configured in Phase 5.
+                Set and save your home, office, and delivery pins on the interactive map to easily receive orders from nearby stores.
               </p>
               <div className="pt-2">
                 <Button variant="outline" size="sm" asChild>

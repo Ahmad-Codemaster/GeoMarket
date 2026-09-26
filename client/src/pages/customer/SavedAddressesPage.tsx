@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, Plus, Trash2, CheckCircle2, Star, Loader2 } from 'lucide-react';
 import { PageContainer, PageHeader } from '../../components/layout/PageContainer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../../components/ui/card';
@@ -9,9 +10,11 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingState } from '../../components/common/LoadingState';
 import { LocationPickerModal } from '../../components/location/LocationPickerModal';
 import { useAddresses, useDeleteAddress, useSetDefaultAddress } from '../../hooks/useAddresses';
+import { useCurrentUser } from '../../hooks/useAuth';
 import { toast } from '../../hooks/useToast';
 
 export function SavedAddressesPage() {
+  const { data: user } = useCurrentUser();
   const [modalOpen, setModalOpen] = useState(false);
   const { data: addresses, isLoading, isError, refetch } = useAddresses();
   const deleteMutation = useDeleteAddress();
@@ -63,15 +66,19 @@ export function SavedAddressesPage() {
       />
 
       <div className="space-y-6">
-        <Alert variant="info">
-          <MapPin className="h-4 w-4" />
-          <AlertTitle>Phase 2 Location Architecture</AlertTitle>
-          <AlertDescription className="text-xs leading-relaxed">
-            Saved delivery locations store high-precision coordinates along with physical address details.
-            In Phase 5, these coordinates power real-time proximity filtering (<code>ST_DWithin</code>)
-            against nearby store delivery perimeters.
-          </AlertDescription>
-        </Alert>
+        {(user as any)?.isGuest && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-sm">
+            <div className="flex items-center gap-2.5">
+              <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Guest Session Active:</strong> Locations configured in this session will be saved temporarily. Log in to permanently link them to your customer account.
+              </span>
+            </div>
+            <Button size="sm" variant="outline" asChild className="shrink-0 bg-white border-emerald-300 hover:bg-emerald-100 text-emerald-800">
+              <Link to="/login">Log In to Save</Link>
+            </Button>
+          </div>
+        )}
 
         {isLoading ? (
           <LoadingState label="Loading delivery locations…" />

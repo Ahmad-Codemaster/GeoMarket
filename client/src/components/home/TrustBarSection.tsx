@@ -27,7 +27,7 @@ export function TrustBarSection() {
           </div>
           <div>
             <h4 className="font-extrabold text-sm sm:text-base text-slate-900">
-              ~25 Mins Doorstep Delivery
+              Direct Doorstep Delivery
             </h4>
             <p className="text-xs text-slate-500 mt-0.5">
               Direct from local store counters

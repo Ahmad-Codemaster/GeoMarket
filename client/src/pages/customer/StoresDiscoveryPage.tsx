@@ -32,7 +32,6 @@ import {
   SheetTrigger,
   SheetClose,
 } from '../../components/ui/sheet';
-import { LocationPickerModal } from '../../components/location/LocationPickerModal';
 import { StoreCard } from '../../components/discovery/StoreCard';
 import { DiscoveryMap } from '../../components/discovery/DiscoveryMap';
 import { useAuthoritativeLocation } from '../../hooks/useAuthoritativeLocation';
@@ -580,24 +579,6 @@ export function StoresDiscoveryPage() {
           )}
         </main>
       </div>
-
-      {/* Authoritative Location Picker Modal */}
-      <LocationPickerModal
-        open={locationModalOpen}
-        onOpenChange={setLocationModalOpen}
-        onAddressCreated={() => {
-          refetchAddresses();
-        }}
-        onSelectCoordinates={(coords) => {
-          handleSelectMapLocation({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            addressLine: coords.addressLine,
-            city: coords.city,
-          });
-          setPage(1);
-        }}
-      />
     </div>
   );
 }

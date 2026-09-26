@@ -69,7 +69,7 @@ export function Header() {
           <span className="text-slate-300">•</span>
           <span>Same In-Store Prices Guaranteed</span>
           <span className="text-slate-300">•</span>
-          <span>⚡ Doorstep Delivery in ~25 Mins</span>
+          <span>⚡ Direct Doorstep Delivery</span>
         </div>
         <div className="flex items-center gap-5">
           <Link to="/orders/track" className="hover:text-emerald-700 transition-colors">
@@ -153,12 +153,8 @@ export function Header() {
         {/* User Actions */}
         <div className="flex items-center gap-4 lg:gap-6 shrink-0">
           {/* Account */}
-          {user && !(user as any).isGuest ? (
+          {user ? (
             <UserMenu user={user} />
-          ) : (user as any)?.isGuest ? (
-            <span className="text-xs text-slate-500 font-bold px-2.5 py-1 rounded-lg bg-slate-100">
-              Guest
-            </span>
           ) : (
             <Link
               to="/login"
@@ -263,7 +259,7 @@ export function Header() {
 
           <div className="hidden lg:flex items-center">
             <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[11px] px-3 py-1 rounded-full border border-emerald-200/80">
-              ⚡ 25-Min Doorstep Dispatch
+              ⚡ Doorstep Dispatch
             </span>
           </div>
         </div>
@@ -347,22 +343,34 @@ export function Header() {
           </div>
 
           {/* Auth options in mobile */}
-          {!user ? (
-            <div className="pt-2 grid grid-cols-2 gap-2">
+          {!user || (user as any)?.isGuest ? (
+            <div className="pt-2 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="text-center py-2 text-xs font-bold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="text-center py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"
+                >
+                  Sign Up
+                </Link>
+              </div>
               <Link
-                to="/login"
+                to="/dashboard"
                 onClick={() => setMobileNavOpen(false)}
-                className="text-center py-2 text-xs font-bold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50"
+                className="block text-center py-2 text-xs font-bold bg-slate-100 rounded-xl text-slate-800 hover:bg-slate-200"
               >
-                Sign In
+                Guest Dashboard
               </Link>
-              <Link
-                to="/register"
-                onClick={() => setMobileNavOpen(false)}
-                className="text-center py-2 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"
-              >
-                Sign Up
-              </Link>
+              <p className="text-[11px] text-center text-slate-400">
+                Logging in transfers your active cart &amp; delivery pins
+              </p>
             </div>
           ) : (
             <div className="pt-2">

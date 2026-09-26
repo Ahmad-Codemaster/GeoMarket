@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { registerCustomerSchema, registerVendorSchema, loginSchema, guestSessionSchema } from './auth.schemas';
 import * as authService from './auth.service';
+import { transferGuestData } from '../cart/cart.service';
+import { prisma } from '../../lib/prisma';
 import { env } from '../../config/env';
 
 export function getCookieOptions() {
@@ -14,6 +16,26 @@ export function getCookieOptions() {
   };
 }
 
+async function extractGuestUserId(req: Request): Promise<string | null> {
+  const previousToken =
+    req.cookies?.token ||
+    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+  if (!previousToken) return null;
+
+  try {
+    const decoded = authService.verifyToken(previousToken);
+    if (decoded?.sub) {
+      const prevUser = await prisma.user.findUnique({ where: { id: decoded.sub } });
+      if (prevUser && (prevUser as any).isGuest) {
+        return prevUser.id;
+      }
+    }
+  } catch {
+    // Ignore invalid or expired tokens
+  }
+  return null;
+}
+
 export async function registerCustomer(req: Request, res: Response, next: NextFunction) {
   try {
     const parsed = registerCustomerSchema.safeParse(req.body);
@@ -21,7 +43,13 @@ export async function registerCustomer(req: Request, res: Response, next: NextFu
       return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
     }
 
+    const guestUserId = await extractGuestUserId(req);
     const user = await authService.registerCustomer(parsed.data);
+
+    if (guestUserId && guestUserId !== user.id) {
+      await transferGuestData(guestUserId, user.id);
+    }
+
     const token = authService.signToken(user);
 
     res.cookie('token', token, getCookieOptions());
@@ -61,7 +89,13 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
     }
 
+    const guestUserId = await extractGuestUserId(req);
     const user = await authService.login(parsed.data);
+
+    if (guestUserId && guestUserId !== user.id) {
+      await transferGuestData(guestUserId, user.id);
+    }
+
     const token = authService.signToken(user);
 
     res.cookie('token', token, getCookieOptions());

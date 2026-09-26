@@ -491,3 +491,79 @@ export async function clearCart(userId: string): Promise<CartDto> {
     return formatCart(finalCart);
   });
 }
+
+/**
+ * Transfer guest session data (cart items and customer addresses) to a newly logged-in/registered user.
+ */
+export async function transferGuestData(guestUserId: string, targetUserId: string): Promise<void> {
+  if (!guestUserId || !targetUserId || guestUserId === targetUserId) return;
+
+  try {
+    // 1. Transfer any saved delivery addresses from guest session
+    await prisma.customerAddress.updateMany({
+      where: { userId: guestUserId },
+      data: { userId: targetUserId },
+    });
+
+    // 2. Transfer cart items
+    const guestCart = await cartRepo.findCartByUserId(guestUserId);
+    if (!guestCart || guestCart.items.length === 0) {
+      return;
+    }
+
+    const targetCart = await cartRepo.findCartByUserId(targetUserId);
+
+    if (!targetCart) {
+      // Target user has no cart, reassign guest cart directly
+      await prisma.cart.update({
+        where: { id: guestCart.id },
+        data: { userId: targetUserId },
+      });
+      return;
+    }
+
+    // Target user already has a cart
+    if (targetCart.items.length === 0 || targetCart.storeId === guestCart.storeId) {
+      // Same store or target cart is empty: merge items
+      for (const guestItem of guestCart.items) {
+        const existing = targetCart.items.find((i) => i.productId === guestItem.productId);
+        if (existing) {
+          await prisma.cartItem.update({
+            where: { id: existing.id },
+            data: { quantity: existing.quantity + guestItem.quantity },
+          });
+        } else {
+          await prisma.cartItem.create({
+            data: {
+              cartId: targetCart.id,
+              productId: guestItem.productId,
+              quantity: guestItem.quantity,
+            },
+          });
+        }
+      }
+
+      if (!targetCart.storeId && guestCart.storeId) {
+        await prisma.cart.update({
+          where: { id: targetCart.id },
+          data: { storeId: guestCart.storeId },
+        });
+      }
+
+      // Delete guest cart items and guest cart
+      await prisma.cartItem.deleteMany({ where: { cartId: guestCart.id } });
+      await prisma.cart.delete({ where: { id: guestCart.id } });
+    } else {
+      // Different store: guest cart represents the active shopping session right before login
+      await prisma.cartItem.deleteMany({ where: { cartId: targetCart.id } });
+      await prisma.cart.delete({ where: { id: targetCart.id } });
+      await prisma.cart.update({
+        where: { id: guestCart.id },
+        data: { userId: targetUserId },
+      });
+    }
+  } catch (err) {
+    console.error('Failed to transfer guest session data:', err);
+  }
+}
+

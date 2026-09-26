@@ -76,7 +76,7 @@ export function useAuthoritativeLocation() {
           // GPS unavailable or denied - set default reference location
           setLocation(DEFAULT_REFERENCE_LOCATION);
         },
-        { timeout: 8000, enableHighAccuracy: true, maximumAge: 60000 }
+        { timeout: 12000, enableHighAccuracy: true, maximumAge: 0 }
       );
     } else {
       setLocation(DEFAULT_REFERENCE_LOCATION);
@@ -156,7 +156,7 @@ export function useAuthoritativeLocation() {
           variant: 'destructive',
         });
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 0 }
     );
   }, [isLocating, reverseGeocodeMutation, setLocationFromGps]);
 

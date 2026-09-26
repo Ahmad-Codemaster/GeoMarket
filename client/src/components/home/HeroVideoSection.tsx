@@ -91,7 +91,7 @@ export function HeroVideoSection() {
           <div className="flex flex-wrap gap-2.5 sm:gap-3 mt-10">
             <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/80 shadow-xs">
               <Clock className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2.5} />
-              <span>~25 Mins Average Dispatch</span>
+              <span>Fast Direct Dispatch</span>
             </div>
             <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/80 shadow-xs">
               <Check className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2.5} />

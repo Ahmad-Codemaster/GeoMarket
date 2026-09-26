@@ -117,7 +117,7 @@ export function CheckoutPage() {
           variant: 'destructive',
         });
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 12000, enableHighAccuracy: true, maximumAge: 0 }
     );
   };
 

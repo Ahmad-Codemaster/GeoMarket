@@ -16,24 +16,54 @@ import { Badge } from '../../components/ui/badge';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useAddresses } from '../../hooks/useAddresses';
 import { useCustomerOrders } from '../../hooks/useOrders';
-import { LocationPickerModal } from '../../components/location/LocationPickerModal';
+import { useAuthoritativeLocation } from '../../hooks/useAuthoritativeLocation';
 
 export function CustomerDashboardPage() {
   const { data: user } = useCurrentUser();
-  const { data: addresses, refetch } = useAddresses();
+  const { data: addresses } = useAddresses();
   const { data: ordersData } = useCustomerOrders();
-  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const { setLocationModalOpen } = useAuthoritativeLocation();
 
+  const isGuest = (user as any)?.isGuest;
   const defaultAddress = addresses?.find((a) => a.isDefault) || addresses?.[0];
 
   return (
     <PageContainer width="wide">
       <PageHeader
-        title={`Welcome back, ${user?.firstName || 'Customer'}`}
-        description="Your personal GeoMarket customer hub"
+        title={isGuest ? 'Welcome to GeoMarket' : `Welcome back, ${user?.firstName || 'Customer'}`}
+        description={isGuest ? 'Discover nearby stores, manage your guest cart, or log in to save your session' : 'Your personal GeoMarket customer hub'}
       />
 
       <div className="space-y-6">
+        {/* Guest Session Transfer Banner */}
+        {isGuest && (
+          <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 p-6 shadow-xs">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-600 text-white font-bold text-xs">
+                    Guest Session Active
+                  </Badge>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Want to permanently save your cart &amp; delivery addresses?
+                  </h3>
+                </div>
+                <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+                  You are currently browsing in guest mode. When you log in or create a free account, all items in your cart and your selected delivery location will automatically transfer to your account.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">
+                  <Link to="/login">Log In to Transfer</Link>
+                </Button>
+                <Button asChild variant="outline" className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-bold text-xs">
+                  <Link to="/register">Create Free Account</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Location-First Experience Banner / State */}
         <div className="rounded-xl border border-dashed border-accent/40 bg-accent/5 p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -57,7 +87,7 @@ export function CustomerDashboardPage() {
                 </div>
                 <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
                   {defaultAddress
-                    ? `${defaultAddress.addressLine}, ${defaultAddress.city} (${defaultAddress.latitude.toFixed(4)}, ${defaultAddress.longitude.toFixed(4)}). In Phase 5, this location will dynamically filter all stores within delivery reach.`
+                    ? `${defaultAddress.addressLine}, ${defaultAddress.city} (${defaultAddress.latitude.toFixed(4)}, ${defaultAddress.longitude.toFixed(4)}). Nearby stores and doorstep deliveries are dynamically routed for this pin.`
                     : 'GeoMarket is a location-aware multi-vendor marketplace. To see stores that can deliver to you, an active delivery location is required. Configure your delivery pin using the interactive map.'}
                 </p>
               </div>
@@ -81,19 +111,43 @@ export function CustomerDashboardPage() {
                 <CardTitle className="text-base font-semibold">My Profile</CardTitle>
                 <UserIcon className="h-4 w-4 text-muted-foreground" />
               </div>
-              <CardDescription>Account credentials &amp; contact info</CardDescription>
+              <CardDescription>
+                {isGuest ? 'Guest session information' : 'Account credentials & contact info'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-sm space-y-1 mb-4">
-                <p className="font-medium text-foreground">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-muted-foreground text-xs">{user?.email}</p>
-                <p className="text-muted-foreground text-xs">{user?.phone}</p>
-              </div>
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link to="/profile">Manage Profile</Link>
-              </Button>
+              {isGuest ? (
+                <div>
+                  <div className="text-sm space-y-1 mb-4">
+                    <p className="font-semibold text-foreground">Guest User</p>
+                    <p className="text-muted-foreground text-xs">Temporary shopping session</p>
+                    <Badge variant="outline" className="text-[10px] mt-1 text-emerald-700 border-emerald-300 bg-emerald-50 font-bold">
+                      Session Transfer Ready
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" className="font-bold text-xs" asChild>
+                      <Link to="/login">Log In</Link>
+                    </Button>
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs" asChild>
+                      <Link to="/register">Sign Up</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-sm space-y-1 mb-4">
+                    <p className="font-medium text-foreground">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-muted-foreground text-xs">{user?.email}</p>
+                    <p className="text-muted-foreground text-xs">{user?.phone}</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link to="/profile">Manage Profile</Link>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -180,12 +234,6 @@ export function CustomerDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <LocationPickerModal
-        open={locationModalOpen}
-        onOpenChange={setLocationModalOpen}
-        onAddressCreated={() => refetch()}
-      />
     </PageContainer>
   );
 }

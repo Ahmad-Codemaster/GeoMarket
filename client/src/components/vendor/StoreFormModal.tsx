@@ -258,7 +258,7 @@ export function StoreFormModal({
       () => {
         toast({ title: 'Location access denied', description: 'Please pick location on the map manually.' });
       },
-      { timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   };
 

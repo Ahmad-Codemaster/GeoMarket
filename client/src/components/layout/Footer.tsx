@@ -20,9 +20,9 @@ export function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200 pt-16 pb-8 text-slate-600 font-sans">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12">
-          {/* Brand Col (2 cols wide) */}
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12">
+          {/* Brand Col */}
+          <div className="space-y-4">
             <Link to="/" className="inline-flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/25">
                 <MapPin className="w-5 h-5" strokeWidth={2.5} />
@@ -31,15 +31,14 @@ export function Footer() {
                 Geo<span className="text-emerald-600">Market</span>
               </span>
             </Link>
-            <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
-              Connecting verified local supermarkets, artisan bakeries, and pharmacies with your neighborhood for doorstep delivery in ~25 minutes with Cash on Delivery.
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Connecting verified local supermarkets, artisan bakeries, and pharmacies with your neighborhood for direct doorstep delivery with Cash on Delivery.
             </p>
-            <div className="pt-2 flex items-center gap-3 text-xs font-bold text-slate-500">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+            <div className="pt-2 flex flex-col gap-2 text-xs font-bold text-slate-500">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 w-fit">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 Active Node: Faisalabad Hub
               </span>
-              <span className="text-slate-400">•</span>
               <span>100% Cash on Delivery</span>
             </div>
           </div>
@@ -78,7 +77,41 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Col 3: Popular Areas */}
+          {/* Col 3: Account & Session */}
+          <div className="space-y-3.5">
+            <h5 className="font-extrabold text-xs uppercase tracking-wider text-slate-900">
+              Account &amp; Session
+            </h5>
+            <ul className="space-y-2.5 text-sm">
+              <li>
+                <Link to="/login" className="text-slate-500 hover:text-emerald-600 transition-colors font-medium">
+                  Log In <span className="text-[11px] text-emerald-600 font-bold block">(Transfer Cart)</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/register" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                  Create Free Account
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                  Guest Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link to="/addresses" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                  Saved Delivery Locations
+                </Link>
+              </li>
+              <li>
+                <Link to="/cart" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                  Review Shopping Cart
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 4: Popular Areas */}
           <div className="space-y-3.5">
             <h5 className="font-extrabold text-xs uppercase tracking-wider text-slate-900">
               Popular Areas
